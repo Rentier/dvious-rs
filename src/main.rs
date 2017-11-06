@@ -3,7 +3,7 @@ mod dvi;
 use std::io::prelude::*;
 use std::fs::File;
 
-use dvi::disassembler::Disassembler;
+use dvi::disassembler::disassemble;
 
 fn main() {
     let mut f = File::open("foo.txt").unwrap();
@@ -11,7 +11,5 @@ fn main() {
 
     // read the whole file
     f.read_to_end(&mut buffer).unwrap();
-
-    let mut disassembler = Disassembler::new(buffer);
-    disassembler.disassemble();
+    let result = disassemble(buffer);
 }

@@ -1,5 +1,5 @@
 #[derive(Debug, PartialEq)]
 pub enum OpCode {
-    SetN(u8),
+    SetN(u32),
     Nop(),
 }

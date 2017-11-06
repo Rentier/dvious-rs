@@ -1,27 +1,33 @@
 use dvi::opcodes::OpCode;
 
-pub struct Disassembler {
+pub fn disassemble(bytes: Vec<u8>) -> Vec<OpCode> {
+    let mut disassembler = Disassembler::new(bytes);
+    disassembler.disassemble()
+}
+
+struct Disassembler {
     bytes: Vec<u8>,
-    opcodes: Vec<OpCode>,
     position: usize,
 }
 
 impl Disassembler {
-    pub fn new(bytes: Vec<u8>) -> Disassembler {
+    fn new(bytes: Vec<u8>) -> Disassembler {
         Disassembler {
             bytes: bytes,
-            opcodes: Vec::new(),
             position: 0,
         }
     }
 
-    pub fn disassemble<'a>(&'a mut self) -> &'a [OpCode] {
+    fn disassemble(&mut self) -> Vec<OpCode> {
+        let position = 0;
+        let mut opcodes = Vec::new();
+
         while self.has_more() {
             let opcode = self.disassemble_next();
-            self.opcodes.push(opcode);
+            opcodes.push(opcode);
         }
 
-        &self.opcodes
+        opcodes
     }
 
     fn disassemble_next(&mut self) -> OpCode {
@@ -44,15 +50,13 @@ impl Disassembler {
 
 #[cfg(test)]
 mod tests {
-    use Disassembler;
+    use dvi::disassembler::disassemble;
     use dvi::opcodes::OpCode;
 
     #[test]
     fn test_disassemble_set_char() {
         for i in 0..127 {
-            let bytes = vec![i];
-            let mut disassembler = Disassembler::new(bytes);
-            let result = disassembler.disassemble();
+            let result = disassemble(vec![i]);
 
             assert_eq!(result.len(), 1);
             assert_eq!(result[0], OpCode::SetN(i));
