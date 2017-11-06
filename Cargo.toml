@@ -1,0 +1,6 @@
+[package]
+name = "dvious"
+version = "0.1.0"
+authors = ["Jan-Christoph Klie <gitkraken@jck.fastmail.com>"]
+
+[dependencies]
