@@ -5,6 +5,7 @@ use std::fs::File;
 
 use dvi::disassembler::disassemble;
 
+#[allow(unused_variables)]
 fn main() {
     let mut f = File::open("foo.txt").unwrap();
     let mut buffer = Vec::new();
