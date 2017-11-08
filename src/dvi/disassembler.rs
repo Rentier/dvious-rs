@@ -44,6 +44,7 @@ impl Disassembler {
             135 => self.handle_put3(),
             136 => self.handle_put4(),
             137 => self.handle_put_rule(),
+            138 => self.handle_nop(),
             _ => panic!("Unknown opcode: {}", byte),
         }
     }
@@ -108,6 +109,10 @@ impl Disassembler {
             a: self.consume_n_bytes(4) as i32,
             b: self.consume_n_bytes(4) as i32,
         }
+    }
+
+    fn handle_nop(&mut self) -> OpCode {
+        OpCode::Nop
     }
 
     fn consume_byte(&mut self) -> u32 {
@@ -227,6 +232,13 @@ mod tests {
                 b: 0xFEDCBA,
             },
         )
+    }
+
+    #[test]
+    fn test_disassemble_nop() {
+        let result = disassemble(vec![138]);
+
+        assert_that_opcode_was_generated(result, OpCode::Nop)
     }
 
     fn assert_that_opcode_was_generated(result: Vec<OpCode>, opcode: OpCode) {

@@ -4,4 +4,5 @@ pub enum OpCode {
     SetRule { a: i32, b: i32 },
     PutN { n: u32 },
     PutRule { a: i32, b: i32 },
+    Nop,
 }
