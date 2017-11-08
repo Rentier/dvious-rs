@@ -274,6 +274,42 @@ mod tests {
         assert_that_opcode_was_generated(result, OpCode::Nop)
     }
 
+    #[test]
+    #[cfg_attr(rustfmt, rustfmt_skip)]
+    fn test_disassemble_bop() {
+        let result = disassemble(vec![
+            139, 
+            0x01, 0x11, 0x11, 0x11,
+            0x02, 0x22, 0x22, 0x22,
+            0x03, 0x33, 0x33, 0x33,
+            0x04, 0x44, 0x44, 0x44,
+            0x05, 0x55, 0x55, 0x55,
+            0x06, 0x66, 0x66, 0x66,
+            0x07, 0x77, 0x77, 0x77,
+            0x08, 0x88, 0x88, 0x88,
+            0x09, 0x99, 0x99, 0x99,
+            0x0A, 0xAA, 0xAA, 0xAA,
+            0x0C, 0xAF, 0xEB, 0xAE,
+        ]);
+
+        assert_that_opcode_was_generated(
+            result,
+            OpCode::Bop {
+                c0: 0x1111111,
+                c1: 0x2222222,
+                c2: 0x3333333,
+                c3: 0x4444444,
+                c4: 0x5555555,
+                c5: 0x6666666,
+                c6: 0x7777777,
+                c7: 0x8888888,
+                c8: 0x9999999,
+                c9: 0xAAAAAAA,
+                p:  0xCAFEBAE,
+            }
+        )
+    }
+
     fn assert_that_opcode_was_generated(result: Vec<OpCode>, opcode: OpCode) {
         assert_eq!(result.len(), 1);
         assert_eq!(result[0], opcode);
