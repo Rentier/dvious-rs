@@ -14,4 +14,7 @@ pub enum OpCode {
     PutRule { a: i32, b: i32 },
     Nop,
     Bop {c0: i32, c1: i32, c2: i32, c3: i32, c4: i32, c5: i32, c6: i32, c7: i32, c8: i32, c9: i32, p: i32 },
+    Eop,
+    Push,
+    Pop,
 }

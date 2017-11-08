@@ -46,6 +46,9 @@ impl Disassembler {
             137 => self.handle_put_rule(),
             138 => self.handle_nop(),
             139 => self.handle_bop(),
+            140 => self.handle_eop(),
+            141 => self.handle_push(),
+            142 => self.handle_pop(),
             _ => panic!("Unknown opcode: {}", byte),
         }
     }
@@ -134,6 +137,18 @@ impl Disassembler {
             c9: self.consume_four_bytes(),
             p: self.consume_four_bytes(),
         }
+    }
+
+    fn handle_eop(&mut self) -> OpCode {
+        OpCode::Eop
+    }
+
+    fn handle_push(&mut self) -> OpCode {
+        OpCode::Push
+    }
+
+    fn handle_pop(&mut self) -> OpCode {
+        OpCode::Pop
     }
 
     fn consume_one_byte(&mut self) -> u32 {
@@ -308,6 +323,27 @@ mod tests {
                 p:  0xCAFEBAE,
             }
         )
+    }
+
+    #[test]
+    fn test_disassemble_eop() {
+        let result = disassemble(vec![140]);
+
+        assert_that_opcode_was_generated(result, OpCode::Eop)
+    }
+
+    #[test]
+    fn test_disassemble_push() {
+        let result = disassemble(vec![141]);
+
+        assert_that_opcode_was_generated(result, OpCode::Push)
+    }
+
+    #[test]
+    fn test_disassemble_pop() {
+        let result = disassemble(vec![142]);
+
+        assert_that_opcode_was_generated(result, OpCode::Pop)
     }
 
     fn assert_that_opcode_was_generated(result: Vec<OpCode>, opcode: OpCode) {
