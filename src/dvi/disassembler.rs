@@ -43,6 +43,7 @@ impl Disassembler {
             134 => self.handle_put2(),
             135 => self.handle_put3(),
             136 => self.handle_put4(),
+            137 => self.handle_put_rule(),
             _ => panic!("Unknown opcode: {}", byte),
         }
     }
@@ -99,6 +100,13 @@ impl Disassembler {
     fn handle_put4(&mut self) -> OpCode {
         OpCode::PutN {
             n: self.consume_n_bytes(4),
+        }
+    }
+
+    fn handle_put_rule(&mut self) -> OpCode {
+        OpCode::PutRule {
+            a: self.consume_n_bytes(4) as i32,
+            b: self.consume_n_bytes(4) as i32,
         }
     }
 
@@ -206,6 +214,19 @@ mod tests {
         let result = disassemble(vec![136, 0xDE, 0xAD, 0xBE, 0xEF]);
 
         assert_that_opcode_was_generated(result, OpCode::PutN { n: 0xDEADBEEF })
+    }
+
+    #[test]
+    fn test_disassemble_put_rule() {
+        let result = disassemble(vec![137, 0x0, 0xAB, 0xCD, 0xEF, 0x0, 0xFE, 0xDC, 0xBA]);
+
+        assert_that_opcode_was_generated(
+            result,
+            OpCode::PutRule {
+                a: 0xABCDEF,
+                b: 0xFEDCBA,
+            },
+        )
     }
 
     fn assert_that_opcode_was_generated(result: Vec<OpCode>, opcode: OpCode) {
