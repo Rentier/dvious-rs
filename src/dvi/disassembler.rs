@@ -39,6 +39,10 @@ impl Disassembler {
             130 => self.handle_set3(),
             131 => self.handle_set4(),
             132 => self.handle_set_rule(),
+            133 => self.handle_put1(),
+            134 => self.handle_put2(),
+            135 => self.handle_put3(),
+            136 => self.handle_put4(),
             _ => panic!("Unknown opcode: {}", byte),
         }
     }
@@ -71,6 +75,30 @@ impl Disassembler {
         OpCode::SetRule {
             a: self.consume_n_bytes(4) as i32,
             b: self.consume_n_bytes(4) as i32,
+        }
+    }
+
+    fn handle_put1(&mut self) -> OpCode {
+        OpCode::PutN {
+            n: self.consume_n_bytes(1),
+        }
+    }
+
+    fn handle_put2(&mut self) -> OpCode {
+        OpCode::PutN {
+            n: self.consume_n_bytes(2),
+        }
+    }
+
+    fn handle_put3(&mut self) -> OpCode {
+        OpCode::PutN {
+            n: self.consume_n_bytes(3),
+        }
+    }
+
+    fn handle_put4(&mut self) -> OpCode {
+        OpCode::PutN {
+            n: self.consume_n_bytes(4),
         }
     }
 
@@ -150,6 +178,34 @@ mod tests {
                 b: 0xFEDCBA,
             },
         )
+    }
+
+    #[test]
+    fn test_disassemble_put1() {
+        let result = disassemble(vec![133, 0xAB]);
+
+        assert_that_opcode_was_generated(result, OpCode::PutN { n: 0xAB })
+    }
+
+    #[test]
+    fn test_disassemble_put2() {
+        let result = disassemble(vec![134, 0xAB, 0xCD]);
+
+        assert_that_opcode_was_generated(result, OpCode::PutN { n: 0xABCD })
+    }
+
+    #[test]
+    fn test_disassemble_put3() {
+        let result = disassemble(vec![135, 0xAB, 0xCD, 0xEF]);
+
+        assert_that_opcode_was_generated(result, OpCode::PutN { n: 0xABCDEF })
+    }
+
+    #[test]
+    fn test_disassemble_put4() {
+        let result = disassemble(vec![136, 0xDE, 0xAD, 0xBE, 0xEF]);
+
+        assert_that_opcode_was_generated(result, OpCode::PutN { n: 0xDEADBEEF })
     }
 
     fn assert_that_opcode_was_generated(result: Vec<OpCode>, opcode: OpCode) {
