@@ -49,6 +49,10 @@ impl Disassembler {
             140 => self.handle_eop(),
             141 => self.handle_push(),
             142 => self.handle_pop(),
+            143 => self.handle_right1(),
+            144 => self.handle_right2(),
+            145 => self.handle_right3(),
+            146 => self.handle_right4(),            
             _ => panic!("Unknown opcode: {}", byte),
         }
     }
@@ -150,6 +154,30 @@ impl Disassembler {
     fn handle_pop(&mut self) -> OpCode {
         OpCode::Pop
     }
+    
+    fn handle_right1(&mut self) -> OpCode {
+        OpCode::Right1 {
+            n: self.consume_one_byte() as i32,
+        }
+    }
+
+    fn handle_right2(&mut self) -> OpCode {
+        OpCode::Right2 {
+            n: self.consume_two_bytes() as i32,
+        }
+    }
+
+    fn handle_right3(&mut self) -> OpCode {
+        OpCode::Right3 {
+            n: self.consume_three_bytes() as i32,
+        }
+    }
+
+    fn handle_right4(&mut self) -> OpCode {
+        OpCode::Right4 {
+            n: self.consume_four_bytes(),
+        }
+    }    
 
     fn consume_one_byte(&mut self) -> u32 {
         self.consume_n_bytes(1)
@@ -344,6 +372,34 @@ mod tests {
         let result = disassemble(vec![142]);
 
         assert_that_opcode_was_generated(result, OpCode::Pop)
+    }
+
+    #[test]
+    fn test_disassemble_right1() {
+        let result = disassemble(vec![143, 0xAB]);
+
+        assert_that_opcode_was_generated(result, OpCode::Right1 { n: 0xAB })
+    }
+
+    #[test]
+    fn test_disassemble_right2() {
+        let result = disassemble(vec![144, 0xAB, 0xCD]);
+
+        assert_that_opcode_was_generated(result, OpCode::Right2 { n: 0xABCD })
+    }
+
+    #[test]
+    fn test_disassemble_right3() {
+        let result = disassemble(vec![145, 0xAB, 0xCD, 0xEF]);
+
+        assert_that_opcode_was_generated(result, OpCode::Right3 { n: 0xABCDEF })
+    }
+
+    #[test]
+    fn test_disassemble_right4() {
+        let result = disassemble(vec![146, 0x00, 0x11, 0x22, 0x33]);
+
+        assert_that_opcode_was_generated(result, OpCode::Right4 { n: 0x112233 })
     }
 
     fn assert_that_opcode_was_generated(result: Vec<OpCode>, opcode: OpCode) {

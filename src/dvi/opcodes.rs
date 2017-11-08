@@ -17,4 +17,8 @@ pub enum OpCode {
     Eop,
     Push,
     Pop,
+    Right1 { n: i32 },
+    Right2 { n: i32 },
+    Right3 { n: i32 },
+    Right4 { n: i32 },
 }
