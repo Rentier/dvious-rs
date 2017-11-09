@@ -52,36 +52,41 @@ impl Disassembler {
             143 => self.handle_right1(),
             144 => self.handle_right2(),
             145 => self.handle_right3(),
-            146 => self.handle_right4(),            
+            146 => self.handle_right4(), 
+            147 => self.handle_w0(),
+            148 => self.handle_w1(),
+            149 => self.handle_w2(),
+            150 => self.handle_w3(),
+            151 => self.handle_w4(),                       
             _ => panic!("Unknown opcode: {}", byte),
         }
     }
 
     fn handle_set_char(&mut self, byte: u32) -> OpCode {
-        OpCode::SetChar { n: byte }
+        OpCode::SetChar { c: byte }
     }
 
     fn handle_set1(&mut self) -> OpCode {
         OpCode::Set1 {
-            n: self.consume_one_byte(),
+            c: self.consume_one_byte(),
         }
     }
 
     fn handle_set2(&mut self) -> OpCode {
         OpCode::Set2 {
-            n: self.consume_two_bytes(),
+            c: self.consume_two_bytes(),
         }
     }
 
     fn handle_set3(&mut self) -> OpCode {
         OpCode::Set3 {
-            n: self.consume_three_bytes(),
+            c: self.consume_three_bytes(),
         }
     }
 
     fn handle_set4(&mut self) -> OpCode {
         OpCode::Set4 {
-            n: self.consume_four_bytes(),
+            c: self.consume_four_bytes(),
         }
     }
 
@@ -94,25 +99,25 @@ impl Disassembler {
 
     fn handle_put1(&mut self) -> OpCode {
         OpCode::Put1 {
-            n: self.consume_one_byte(),
+            c: self.consume_one_byte(),
         }
     }
 
     fn handle_put2(&mut self) -> OpCode {
         OpCode::Put2 {
-            n: self.consume_two_bytes(),
+            c: self.consume_two_bytes(),
         }
     }
 
     fn handle_put3(&mut self) -> OpCode {
         OpCode::Put3 {
-            n: self.consume_three_bytes(),
+            c: self.consume_three_bytes(),
         }
     }
 
     fn handle_put4(&mut self) -> OpCode {
         OpCode::Put4 {
-            n: self.consume_four_bytes(),
+            c: self.consume_four_bytes(),
         }
     }
 
@@ -157,27 +162,55 @@ impl Disassembler {
     
     fn handle_right1(&mut self) -> OpCode {
         OpCode::Right1 {
-            n: self.consume_one_byte() as i32,
+            b: self.consume_one_byte() as i32,
         }
     }
 
     fn handle_right2(&mut self) -> OpCode {
         OpCode::Right2 {
-            n: self.consume_two_bytes() as i32,
+            b: self.consume_two_bytes() as i32,
         }
     }
 
     fn handle_right3(&mut self) -> OpCode {
         OpCode::Right3 {
-            n: self.consume_three_bytes() as i32,
+            b: self.consume_three_bytes() as i32,
         }
     }
 
     fn handle_right4(&mut self) -> OpCode {
         OpCode::Right4 {
-            n: self.consume_four_bytes(),
+            b: self.consume_four_bytes(),
         }
+    }
+
+    fn handle_w0(&mut self) -> OpCode {
+        OpCode::W0
     }    
+
+    fn handle_w1(&mut self) -> OpCode {
+        OpCode::W1 {
+            b: self.consume_one_byte() as i32,
+        }
+    }
+
+    fn handle_w2(&mut self) -> OpCode {
+        OpCode::W2 {
+            b: self.consume_two_bytes() as i32,
+        }
+    }
+
+    fn handle_w3(&mut self) -> OpCode {
+        OpCode::W3 {
+            b: self.consume_three_bytes() as i32,
+        }
+    }
+
+    fn handle_w4(&mut self) -> OpCode {
+        OpCode::W4 {
+            b: self.consume_four_bytes(),
+        }
+    }        
 
     fn consume_one_byte(&mut self) -> u32 {
         self.consume_n_bytes(1)
@@ -224,7 +257,7 @@ mod tests {
         for i in 0..127 {
             let result = disassemble(vec![i]);
 
-            assert_that_opcode_was_generated(result, OpCode::SetChar { n: i as u32 })
+            assert_that_opcode_was_generated(result, OpCode::SetChar { c: i as u32 })
         }
     }
 
@@ -232,28 +265,28 @@ mod tests {
     fn test_disassemble_set1() {
         let result = disassemble(vec![128, 0xAB]);
 
-        assert_that_opcode_was_generated(result, OpCode::Set1 { n: 0xAB })
+        assert_that_opcode_was_generated(result, OpCode::Set1 { c: 0xAB })
     }
 
     #[test]
     fn test_disassemble_set2() {
         let result = disassemble(vec![129, 0xAB, 0xCD]);
 
-        assert_that_opcode_was_generated(result, OpCode::Set2 { n: 0xABCD })
+        assert_that_opcode_was_generated(result, OpCode::Set2 { c: 0xABCD })
     }
 
     #[test]
     fn test_disassemble_set3() {
         let result = disassemble(vec![130, 0xAB, 0xCD, 0xEF]);
 
-        assert_that_opcode_was_generated(result, OpCode::Set3 { n: 0xABCDEF })
+        assert_that_opcode_was_generated(result, OpCode::Set3 { c: 0xABCDEF })
     }
 
     #[test]
     fn test_disassemble_set4() {
         let result = disassemble(vec![131, 0x00, 0x11, 0x22, 0x33]);
 
-        assert_that_opcode_was_generated(result, OpCode::Set4 { n: 0x112233 })
+        assert_that_opcode_was_generated(result, OpCode::Set4 { c: 0x112233 })
     }
 
     #[test]
@@ -273,28 +306,28 @@ mod tests {
     fn test_disassemble_put1() {
         let result = disassemble(vec![133, 0xAB]);
 
-        assert_that_opcode_was_generated(result, OpCode::Put1 { n: 0xAB })
+        assert_that_opcode_was_generated(result, OpCode::Put1 { c: 0xAB })
     }
 
     #[test]
     fn test_disassemble_put2() {
         let result = disassemble(vec![134, 0xAB, 0xCD]);
 
-        assert_that_opcode_was_generated(result, OpCode::Put2 { n: 0xABCD })
+        assert_that_opcode_was_generated(result, OpCode::Put2 { c: 0xABCD })
     }
 
     #[test]
     fn test_disassemble_put3() {
         let result = disassemble(vec![135, 0xAB, 0xCD, 0xEF]);
 
-        assert_that_opcode_was_generated(result, OpCode::Put3 { n: 0xABCDEF })
+        assert_that_opcode_was_generated(result, OpCode::Put3 { c: 0xABCDEF })
     }
 
     #[test]
     fn test_disassemble_put4() {
         let result = disassemble(vec![136, 0x00, 0x11, 0x22, 0x33]);
 
-        assert_that_opcode_was_generated(result, OpCode::Put4 { n: 0x112233 })
+        assert_that_opcode_was_generated(result, OpCode::Put4 { c: 0x112233 })
     }
 
     #[test]
@@ -378,29 +411,66 @@ mod tests {
     fn test_disassemble_right1() {
         let result = disassemble(vec![143, 0xAB]);
 
-        assert_that_opcode_was_generated(result, OpCode::Right1 { n: 0xAB })
+        assert_that_opcode_was_generated(result, OpCode::Right1 { b: 0xAB })
     }
 
     #[test]
     fn test_disassemble_right2() {
         let result = disassemble(vec![144, 0xAB, 0xCD]);
 
-        assert_that_opcode_was_generated(result, OpCode::Right2 { n: 0xABCD })
+        assert_that_opcode_was_generated(result, OpCode::Right2 { b: 0xABCD })
     }
 
     #[test]
     fn test_disassemble_right3() {
         let result = disassemble(vec![145, 0xAB, 0xCD, 0xEF]);
 
-        assert_that_opcode_was_generated(result, OpCode::Right3 { n: 0xABCDEF })
+        assert_that_opcode_was_generated(result, OpCode::Right3 { b: 0xABCDEF })
     }
 
     #[test]
     fn test_disassemble_right4() {
         let result = disassemble(vec![146, 0x00, 0x11, 0x22, 0x33]);
 
-        assert_that_opcode_was_generated(result, OpCode::Right4 { n: 0x112233 })
+        assert_that_opcode_was_generated(result, OpCode::Right4 { b: 0x112233 })
     }
+
+    // W
+
+   #[test]
+    fn test_disassemble_w0() {
+        let result = disassemble(vec![147]);
+
+        assert_that_opcode_was_generated(result, OpCode::W0)
+    }    
+
+   #[test]
+    fn test_disassemble_w1() {
+        let result = disassemble(vec![148, 0xAB]);
+
+        assert_that_opcode_was_generated(result, OpCode::W1 { b: 0xAB })
+    }
+
+    #[test]
+    fn test_disassemble_w2() {
+        let result = disassemble(vec![149, 0xAB, 0xCD]);
+
+        assert_that_opcode_was_generated(result, OpCode::W2 { b: 0xABCD })
+    }
+
+    #[test]
+    fn test_disassemble_w3() {
+        let result = disassemble(vec![150, 0xAB, 0xCD, 0xEF]);
+
+        assert_that_opcode_was_generated(result, OpCode::W3 { b: 0xABCDEF })
+    }
+
+    #[test]
+    fn test_disassemble_w4() {
+        let result = disassemble(vec![151, 0x00, 0x11, 0x22, 0x33]);
+
+        assert_that_opcode_was_generated(result, OpCode::W4 { b: 0x112233 })
+    }        
 
     fn assert_that_opcode_was_generated(result: Vec<OpCode>, opcode: OpCode) {
         assert_eq!(result.len(), 1);
