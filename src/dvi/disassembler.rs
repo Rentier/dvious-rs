@@ -52,26 +52,31 @@ impl Disassembler {
             143 => self.handle_right1(),
             144 => self.handle_right2(),
             145 => self.handle_right3(),
-            146 => self.handle_right4(), 
+            146 => self.handle_right4(),
             147 => self.handle_w0(),
             148 => self.handle_w1(),
             149 => self.handle_w2(),
             150 => self.handle_w3(),
-            151 => self.handle_w4(),    
+            151 => self.handle_w4(),
             152 => self.handle_x0(),
             153 => self.handle_x1(),
             154 => self.handle_x2(),
             155 => self.handle_x3(),
-            156 => self.handle_x4(),  
+            156 => self.handle_x4(),
             157 => self.handle_down1(),
             158 => self.handle_down2(),
             159 => self.handle_down3(),
-            160 => self.handle_down4(),  
+            160 => self.handle_down4(),
             161 => self.handle_y0(),
             162 => self.handle_y1(),
             163 => self.handle_y2(),
             164 => self.handle_y3(),
-            165 => self.handle_y4(),                                                     
+            165 => self.handle_y4(),
+            166 => self.handle_z0(),
+            167 => self.handle_z1(),
+            168 => self.handle_z2(),
+            169 => self.handle_z3(),
+            170 => self.handle_z4(), 
             _ => panic!("Unknown opcode: {}", byte),
         }
     }
@@ -318,7 +323,37 @@ impl Disassembler {
         OpCode::Y4 {
             a: self.consume_four_bytes(),
         }
-    }    
+    }
+
+    // Y
+
+    fn handle_z0(&mut self) -> OpCode {
+        OpCode::Z0
+    }
+
+    fn handle_z1(&mut self) -> OpCode {
+        OpCode::Z1 {
+            a: self.consume_one_byte() as i32,
+        }
+    }
+
+    fn handle_z2(&mut self) -> OpCode {
+        OpCode::Z2 {
+            a: self.consume_two_bytes() as i32,
+        }
+    }
+
+    fn handle_z3(&mut self) -> OpCode {
+        OpCode::Z3 {
+            a: self.consume_three_bytes() as i32,
+        }
+    }
+
+    fn handle_z4(&mut self) -> OpCode {
+        OpCode::Z4 {
+            a: self.consume_four_bytes(),
+        }
+    }
 
     // Read bytes
 
@@ -552,7 +587,7 @@ mod tests {
         let result = disassemble(vec![147]);
 
         assert_that_opcode_was_generated(result, OpCode::W0)
-    }    
+    }
 
    #[test]
     fn test_disassemble_w1() {
@@ -589,7 +624,7 @@ mod tests {
         let result = disassemble(vec![152]);
 
         assert_that_opcode_was_generated(result, OpCode::X0)
-    }    
+    }
 
    #[test]
     fn test_disassemble_x1() {
@@ -647,7 +682,7 @@ mod tests {
         let result = disassemble(vec![160, 0x00, 0x11, 0x22, 0x33]);
 
         assert_that_opcode_was_generated(result, OpCode::Down4 { a: 0x112233 })
-    }    
+    }
 
     // Y
 
@@ -656,7 +691,7 @@ mod tests {
         let result = disassemble(vec![161]);
 
         assert_that_opcode_was_generated(result, OpCode::Y0)
-    }    
+    }
 
    #[test]
     fn test_disassemble_y1() {
@@ -684,7 +719,44 @@ mod tests {
         let result = disassemble(vec![165, 0x00, 0x11, 0x22, 0x33]);
 
         assert_that_opcode_was_generated(result, OpCode::Y4 { a: 0x112233 })
-    }     
+    }
+
+    // Z
+
+   #[test]
+    fn test_disassemble_z0() {
+        let result = disassemble(vec![166]);
+
+        assert_that_opcode_was_generated(result, OpCode::Z0)
+    }
+
+   #[test]
+    fn test_disassemble_z1() {
+        let result = disassemble(vec![167, 0xAB]);
+
+        assert_that_opcode_was_generated(result, OpCode::Z1 { a: 0xAB })
+    }
+
+    #[test]
+    fn test_disassemble_z2() {
+        let result = disassemble(vec![168, 0xAB, 0xCD]);
+
+        assert_that_opcode_was_generated(result, OpCode::Z2 { a: 0xABCD })
+    }
+
+    #[test]
+    fn test_disassemble_z3() {
+        let result = disassemble(vec![169, 0xAB, 0xCD, 0xEF]);
+
+        assert_that_opcode_was_generated(result, OpCode::Z3 { a: 0xABCDEF })
+    }
+
+    #[test]
+    fn test_disassemble_z4() {
+        let result = disassemble(vec![170, 0x00, 0x11, 0x22, 0x33]);
+
+        assert_that_opcode_was_generated(result, OpCode::Z4 { a: 0x112233 })
+    }
 
     // Helper
 
