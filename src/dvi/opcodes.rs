@@ -1,3 +1,5 @@
+use std::fmt;
+
 #[derive(Debug, PartialEq)]
 #[cfg_attr(rustfmt, rustfmt_skip)]
 pub enum OpCode {
@@ -50,4 +52,10 @@ pub enum OpCode {
     Fnt2 { k: u32 },
     Fnt3 { k: u32 },
     Fnt4 { k: i32 },
+}
+
+impl fmt::Display for OpCode {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        fmt::Debug::fmt(self, f)
+    }
 }
