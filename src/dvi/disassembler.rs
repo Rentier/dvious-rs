@@ -78,6 +78,10 @@ impl Disassembler {
             169 => self.handle_z3(),
             170 => self.handle_z4(),
             171...234 => self.handle_fnt_num(byte),
+            235 => self.handle_fnt1(),
+            236 => self.handle_fnt2(),
+            237 => self.handle_fnt3(),
+            238 => self.handle_fnt4(),
             _ => panic!("Unknown opcode: {}", byte),
         }
     }
@@ -360,6 +364,30 @@ impl Disassembler {
 
     fn handle_fnt_num(&mut self, byte: u8) -> OpCode {
         OpCode::FntNum { k: byte as u32}
+    }
+
+    fn handle_fnt1(&mut self) -> OpCode {
+        OpCode::Fnt1 {
+            k: self.consume_one_byte(),
+        }
+    }
+
+    fn handle_fnt2(&mut self) -> OpCode {
+        OpCode::Fnt2 {
+            k: self.consume_two_bytes(),
+        }
+    }
+
+    fn handle_fnt3(&mut self) -> OpCode {
+        OpCode::Fnt3 {
+            k: self.consume_three_bytes(),
+        }
+    }
+
+    fn handle_fnt4(&mut self) -> OpCode {
+        OpCode::Fnt4 {
+            k: self.consume_four_bytes(),
+        }
     }
 
     // Read bytes
@@ -775,6 +803,34 @@ mod tests {
             assert_that_opcode_was_generated(result, OpCode::FntNum { k: i as u32 })
         }
     }
+
+    #[test]
+    fn test_disassemble_fnt1() {
+        let result = disassemble(vec![235, 0xAB]);
+
+        assert_that_opcode_was_generated(result, OpCode::Fnt1 {k: 0xAB })
+    }
+
+    #[test]
+    fn test_disassemble_fnt2() {
+        let result = disassemble(vec![236, 0xAB, 0xCD]);
+
+        assert_that_opcode_was_generated(result, OpCode::Fnt2 {k: 0xABCD })
+    }
+
+    #[test]
+    fn test_disassemble_fnt3() {
+        let result = disassemble(vec![237, 0xAB, 0xCD, 0xEF]);
+
+        assert_that_opcode_was_generated(result, OpCode::Fnt3 {k: 0xABCDEF })
+    }
+
+    #[test]
+    fn test_disassemble_fnt4() {
+        let result = disassemble(vec![238, 0x11, 0x22, 0x33, 0x44]);
+
+        assert_that_opcode_was_generated(result, OpCode::Fnt4 {k: 0x11223344 })
+    }    
 
     // Helper
 

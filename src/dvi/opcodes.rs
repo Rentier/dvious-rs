@@ -45,5 +45,9 @@ pub enum OpCode {
     Z2 { a: i32 },
     Z3 { a: i32 },
     Z4 { a: i32 },
-    FntNum { k: u32}
+    FntNum { k: u32},
+    Fnt1 { k: u32 },
+    Fnt2 { k: u32 },
+    Fnt3 { k: u32 },
+    Fnt4 { k: i32 },
 }
