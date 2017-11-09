@@ -1,6 +1,6 @@
 use dvi::opcodes::OpCode;
 
-pub fn disassemble(bytes: Vec<u8>) -> Vec<OpCode> {
+pub fn disassemble(bytes: Vec<u8>) -> Result<Vec<OpCode>, String> {
     let mut disassembler = Disassembler::new(bytes);
     disassembler.disassemble()
 }
@@ -18,21 +18,24 @@ impl Disassembler {
         }
     }
 
-    fn disassemble(&mut self) -> Vec<OpCode> {
+    fn disassemble(&mut self) -> Result<Vec<OpCode>, String> {
         self.position = 0;
         let mut opcodes = Vec::new();
 
         while self.has_more() {
-            let opcode = self.disassemble_next();
+            let opcode = match self.disassemble_next() {
+                Err(why) => return Err(why),
+                Ok(opcode) => opcode
+            };
             opcodes.push(opcode);
         }
 
-        opcodes
+        Ok(opcodes)
     }
 
-    fn disassemble_next(&mut self) -> OpCode {
+    fn disassemble_next(&mut self) -> Result<OpCode, String> {
         let byte = self.consume_one_byte_as_scalar() as u8;
-        match byte {
+        let opcode = match byte {
             0...127 => self.handle_set_char(byte),
             128 => self.handle_set1(),
             129 => self.handle_set2(),
@@ -86,8 +89,9 @@ impl Disassembler {
             240 => self.handle_xxx2(),
             241 => self.handle_xxx3(),
             242 => self.handle_xxx4(),
-            _ => panic!("Unknown opcode: {}", byte),
-        }
+            _ => return Err(format!("Unknown opcode: {}", byte)),
+        };
+        Ok(opcode)
     }
 
     // Set

@@ -1,7 +1,6 @@
 use std::error::Error;
 use std::fs::File;
 use std::io::prelude::*;
-use std::io::{self, Write};
 use std::path::Path;
 use std::process;
 
@@ -13,7 +12,7 @@ use dvi::disassembler::disassemble;
 
 #[allow(unused_variables)]
 fn main() {
-    let matches = App::new("dvious")
+    let app = App::new("dvious")
         .version("0.1.0")
         .author("Jan-Christoph Klie <git@mrklie.com>")
         .about("Toolkit for DVI files")
@@ -31,33 +30,44 @@ fn main() {
         )
         .get_matches();
 
-    if let Some(matches) = matches.subcommand_matches("disassemble") {
-        let input = matches.value_of("INPUT").unwrap();
-        disassemble_file(input);
-    }
+    let result = match app.subcommand() {
+        ("disassemble", Some(sub)) => {
+            let input = sub.value_of("INPUT").unwrap();
+            disassemble_file(input)
+        }
+        _ => Ok(()),
+    };
+
+    match result {
+        // The `description` method of `io::Error` returns a string that
+        // describes the error
+        Err(why) => {
+            eprintln!("An error occured: {:?}", why);
+            process::exit(1);
+        }
+        Ok(file) => process::exit(0),
+    };
 }
 
-fn disassemble_file(input: &str) {
+fn disassemble_file(input: &str) -> Result<(), String> {
     let path = Path::new(input);
     let display = path.display();
     let mut file = match File::open(&path) {
-        Err(why) => {
-            writeln!(
-                io::stderr(),
-                "Couldn't open '{}': {}",
-                display,
-                why.description()
-            ).unwrap();
-            process::exit(1);
-        }
+        Err(why) => return Err(format!("Could not open {}: {}", display, why.description())),
         Ok(file) => file,
     };
 
     let mut buffer = Vec::new();
     file.read_to_end(&mut buffer).unwrap();
-    let result = disassemble(buffer);
 
-    for opcode in result {
+    let opcodes = match disassemble(buffer) {
+        Err(why) => return Err(why),
+        Ok(opcodes) => opcodes,
+    };
+
+    for opcode in opcodes {
         println!("{}", opcode);
     }
+
+    Ok(())
 }
