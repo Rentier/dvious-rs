@@ -8,7 +8,7 @@ This project offers different tools for dealing with DVI (Device independent) fi
 
     use dvi::disassembler::disassemble;
 
-    let mut f = File::open("foo.txt").unwrap();
+    let mut f = File::open("foo.dvi").unwrap();
     let mut buffer = Vec::new();
 
     f.read_to_end(&mut buffer).unwrap();
