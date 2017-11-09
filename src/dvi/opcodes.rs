@@ -34,5 +34,10 @@ pub enum OpCode {
     Down1 { a: i32 },
     Down2 { a: i32 },
     Down3 { a: i32 },
-    Down4 { a: i32 },        
+    Down4 { a: i32 }, 
+    Y0,
+    Y1 { a: i32 },
+    Y2 { a: i32 },
+    Y3 { a: i32 },
+    Y4 { a: i32 },           
 }
