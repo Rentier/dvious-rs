@@ -4,3 +4,10 @@ version = "0.1.0"
 authors = ["Jan-Christoph Klie <gitkraken@jck.fastmail.com>"]
 
 [dependencies]
+
+[dependencies.clap]
+version = "2.27"
+default-features = false
+
+# Cherry-pick the features you'd like to use
+features = [ "suggestions", "color", "wrap_help" ]
