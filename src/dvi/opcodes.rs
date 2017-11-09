@@ -52,6 +52,10 @@ pub enum OpCode {
     Fnt2 { k: u32 },
     Fnt3 { k: u32 },
     Fnt4 { k: i32 },
+    Xxx1 { k: u32, x: Vec<u8> },
+    Xxx2 { k: u32, x: Vec<u8> },
+    Xxx3 { k: u32, x: Vec<u8> },
+    Xxx4 { k: i32, x: Vec<u8> },
 }
 
 impl fmt::Display for OpCode {

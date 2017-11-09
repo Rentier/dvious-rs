@@ -31,7 +31,7 @@ impl Disassembler {
     }
 
     fn disassemble_next(&mut self) -> OpCode {
-        let byte = self.consume_one_byte() as u8;
+        let byte = self.consume_one_byte_as_scalar() as u8;
         match byte {
             0...127 => self.handle_set_char(byte),
             128 => self.handle_set1(),
@@ -82,6 +82,10 @@ impl Disassembler {
             236 => self.handle_fnt2(),
             237 => self.handle_fnt3(),
             238 => self.handle_fnt4(),
+            239 => self.handle_xxx1(),
+            240 => self.handle_xxx2(),
+            241 => self.handle_xxx3(),
+            242 => self.handle_xxx4(),
             _ => panic!("Unknown opcode: {}", byte),
         }
     }
@@ -94,32 +98,32 @@ impl Disassembler {
 
     fn handle_set1(&mut self) -> OpCode {
         OpCode::Set1 {
-            c: self.consume_one_byte(),
+            c: self.consume_one_byte_as_scalar(),
         }
     }
 
     fn handle_set2(&mut self) -> OpCode {
         OpCode::Set2 {
-            c: self.consume_two_bytes(),
+            c: self.consume_two_bytes_as_scalar(),
         }
     }
 
     fn handle_set3(&mut self) -> OpCode {
         OpCode::Set3 {
-            c: self.consume_three_bytes(),
+            c: self.consume_three_bytes_as_scalar(),
         }
     }
 
     fn handle_set4(&mut self) -> OpCode {
         OpCode::Set4 {
-            c: self.consume_four_bytes(),
+            c: self.consume_four_bytes_as_scalar(),
         }
     }
 
     fn handle_set_rule(&mut self) -> OpCode {
         OpCode::SetRule {
-            a: self.consume_four_bytes(),
-            b: self.consume_four_bytes(),
+            a: self.consume_four_bytes_as_scalar(),
+            b: self.consume_four_bytes_as_scalar(),
         }
     }
 
@@ -127,32 +131,32 @@ impl Disassembler {
 
     fn handle_put1(&mut self) -> OpCode {
         OpCode::Put1 {
-            c: self.consume_one_byte(),
+            c: self.consume_one_byte_as_scalar(),
         }
     }
 
     fn handle_put2(&mut self) -> OpCode {
         OpCode::Put2 {
-            c: self.consume_two_bytes(),
+            c: self.consume_two_bytes_as_scalar(),
         }
     }
 
     fn handle_put3(&mut self) -> OpCode {
         OpCode::Put3 {
-            c: self.consume_three_bytes(),
+            c: self.consume_three_bytes_as_scalar(),
         }
     }
 
     fn handle_put4(&mut self) -> OpCode {
         OpCode::Put4 {
-            c: self.consume_four_bytes(),
+            c: self.consume_four_bytes_as_scalar(),
         }
     }
 
     fn handle_put_rule(&mut self) -> OpCode {
         OpCode::PutRule {
-            a: self.consume_four_bytes(),
-            b: self.consume_four_bytes(),
+            a: self.consume_four_bytes_as_scalar(),
+            b: self.consume_four_bytes_as_scalar(),
         }
     }
 
@@ -162,17 +166,17 @@ impl Disassembler {
 
     fn handle_bop(&mut self) -> OpCode {
         OpCode::Bop {
-            c0: self.consume_four_bytes(),
-            c1: self.consume_four_bytes(),
-            c2: self.consume_four_bytes(),
-            c3: self.consume_four_bytes(),
-            c4: self.consume_four_bytes(),
-            c5: self.consume_four_bytes(),
-            c6: self.consume_four_bytes(),
-            c7: self.consume_four_bytes(),
-            c8: self.consume_four_bytes(),
-            c9: self.consume_four_bytes(),
-            p: self.consume_four_bytes(),
+            c0: self.consume_four_bytes_as_scalar(),
+            c1: self.consume_four_bytes_as_scalar(),
+            c2: self.consume_four_bytes_as_scalar(),
+            c3: self.consume_four_bytes_as_scalar(),
+            c4: self.consume_four_bytes_as_scalar(),
+            c5: self.consume_four_bytes_as_scalar(),
+            c6: self.consume_four_bytes_as_scalar(),
+            c7: self.consume_four_bytes_as_scalar(),
+            c8: self.consume_four_bytes_as_scalar(),
+            c9: self.consume_four_bytes_as_scalar(),
+            p: self.consume_four_bytes_as_scalar(),
         }
     }
 
@@ -192,25 +196,25 @@ impl Disassembler {
     
     fn handle_right1(&mut self) -> OpCode {
         OpCode::Right1 {
-            b: self.consume_one_byte() as i32,
+            b: self.consume_one_byte_as_scalar() as i32,
         }
     }
 
     fn handle_right2(&mut self) -> OpCode {
         OpCode::Right2 {
-            b: self.consume_two_bytes() as i32,
+            b: self.consume_two_bytes_as_scalar() as i32,
         }
     }
 
     fn handle_right3(&mut self) -> OpCode {
         OpCode::Right3 {
-            b: self.consume_three_bytes() as i32,
+            b: self.consume_three_bytes_as_scalar() as i32,
         }
     }
 
     fn handle_right4(&mut self) -> OpCode {
         OpCode::Right4 {
-            b: self.consume_four_bytes(),
+            b: self.consume_four_bytes_as_scalar(),
         }
     }
 
@@ -222,25 +226,25 @@ impl Disassembler {
 
     fn handle_w1(&mut self) -> OpCode {
         OpCode::W1 {
-            b: self.consume_one_byte() as i32,
+            b: self.consume_one_byte_as_scalar() as i32,
         }
     }
 
     fn handle_w2(&mut self) -> OpCode {
         OpCode::W2 {
-            b: self.consume_two_bytes() as i32,
+            b: self.consume_two_bytes_as_scalar() as i32,
         }
     }
 
     fn handle_w3(&mut self) -> OpCode {
         OpCode::W3 {
-            b: self.consume_three_bytes() as i32,
+            b: self.consume_three_bytes_as_scalar() as i32,
         }
     }
 
     fn handle_w4(&mut self) -> OpCode {
         OpCode::W4 {
-            b: self.consume_four_bytes(),
+            b: self.consume_four_bytes_as_scalar(),
         }
     }        
 
@@ -252,25 +256,25 @@ impl Disassembler {
 
     fn handle_x1(&mut self) -> OpCode {
         OpCode::X1 {
-            b: self.consume_one_byte() as i32,
+            b: self.consume_one_byte_as_scalar() as i32,
         }
     }
 
     fn handle_x2(&mut self) -> OpCode {
         OpCode::X2 {
-            b: self.consume_two_bytes() as i32,
+            b: self.consume_two_bytes_as_scalar() as i32,
         }
     }
 
     fn handle_x3(&mut self) -> OpCode {
         OpCode::X3 {
-            b: self.consume_three_bytes() as i32,
+            b: self.consume_three_bytes_as_scalar() as i32,
         }
     }
 
     fn handle_x4(&mut self) -> OpCode {
         OpCode::X4 {
-            b: self.consume_four_bytes(),
+            b: self.consume_four_bytes_as_scalar(),
         }
     }
 
@@ -278,25 +282,25 @@ impl Disassembler {
 
     fn handle_down1(&mut self) -> OpCode {
         OpCode::Down1 {
-            a: self.consume_one_byte() as i32,
+            a: self.consume_one_byte_as_scalar() as i32,
         }
     }
 
     fn handle_down2(&mut self) -> OpCode {
         OpCode::Down2 {
-            a: self.consume_two_bytes() as i32,
+            a: self.consume_two_bytes_as_scalar() as i32,
         }
     }
 
     fn handle_down3(&mut self) -> OpCode {
         OpCode::Down3 {
-            a: self.consume_three_bytes() as i32,
+            a: self.consume_three_bytes_as_scalar() as i32,
         }
     }
 
     fn handle_down4(&mut self) -> OpCode {
         OpCode::Down4 {
-            a: self.consume_four_bytes(),
+            a: self.consume_four_bytes_as_scalar(),
         }
     }
 
@@ -308,25 +312,25 @@ impl Disassembler {
 
     fn handle_y1(&mut self) -> OpCode {
         OpCode::Y1 {
-            a: self.consume_one_byte() as i32,
+            a: self.consume_one_byte_as_scalar() as i32,
         }
     }
 
     fn handle_y2(&mut self) -> OpCode {
         OpCode::Y2 {
-            a: self.consume_two_bytes() as i32,
+            a: self.consume_two_bytes_as_scalar() as i32,
         }
     }
 
     fn handle_y3(&mut self) -> OpCode {
         OpCode::Y3 {
-            a: self.consume_three_bytes() as i32,
+            a: self.consume_three_bytes_as_scalar() as i32,
         }
     }
 
     fn handle_y4(&mut self) -> OpCode {
         OpCode::Y4 {
-            a: self.consume_four_bytes(),
+            a: self.consume_four_bytes_as_scalar(),
         }
     }
 
@@ -338,25 +342,25 @@ impl Disassembler {
 
     fn handle_z1(&mut self) -> OpCode {
         OpCode::Z1 {
-            a: self.consume_one_byte() as i32,
+            a: self.consume_one_byte_as_scalar() as i32,
         }
     }
 
     fn handle_z2(&mut self) -> OpCode {
         OpCode::Z2 {
-            a: self.consume_two_bytes() as i32,
+            a: self.consume_two_bytes_as_scalar() as i32,
         }
     }
 
     fn handle_z3(&mut self) -> OpCode {
         OpCode::Z3 {
-            a: self.consume_three_bytes() as i32,
+            a: self.consume_three_bytes_as_scalar() as i32,
         }
     }
 
     fn handle_z4(&mut self) -> OpCode {
         OpCode::Z4 {
-            a: self.consume_four_bytes(),
+            a: self.consume_four_bytes_as_scalar(),
         }
     }
 
@@ -368,47 +372,81 @@ impl Disassembler {
 
     fn handle_fnt1(&mut self) -> OpCode {
         OpCode::Fnt1 {
-            k: self.consume_one_byte(),
+            k: self.consume_one_byte_as_scalar(),
         }
     }
 
     fn handle_fnt2(&mut self) -> OpCode {
         OpCode::Fnt2 {
-            k: self.consume_two_bytes(),
+            k: self.consume_two_bytes_as_scalar(),
         }
     }
 
     fn handle_fnt3(&mut self) -> OpCode {
         OpCode::Fnt3 {
-            k: self.consume_three_bytes(),
+            k: self.consume_three_bytes_as_scalar(),
         }
     }
 
     fn handle_fnt4(&mut self) -> OpCode {
         OpCode::Fnt4 {
-            k: self.consume_four_bytes(),
+            k: self.consume_four_bytes_as_scalar(),
+        }
+    }
+
+    // Xxx
+
+    fn handle_xxx1(&mut self) -> OpCode {
+        let k = self.consume_one_byte_as_scalar();
+        OpCode::Xxx1 {
+            k: k,
+            x: self.consume_n_bytes_as_vec(k)
+        }
+    }
+
+    fn handle_xxx2(&mut self) -> OpCode {
+        let k = self.consume_two_bytes_as_scalar();
+        OpCode::Xxx2 {
+            k: k,
+            x: self.consume_n_bytes_as_vec(k)
+        }
+    }
+
+    fn handle_xxx3(&mut self) -> OpCode {
+        let k = self.consume_three_bytes_as_scalar();
+        OpCode::Xxx3 {
+            k: k,
+            x: self.consume_n_bytes_as_vec(k)
+        }
+    }        
+
+    fn handle_xxx4(&mut self) -> OpCode {
+        let k = self.consume_four_bytes_as_scalar();
+        OpCode::Xxx4 {
+            k: k,
+            x: self.consume_n_bytes_as_vec(k as u32)
         }
     }
 
     // Read bytes
 
-    fn consume_one_byte(&mut self) -> u32 {
-        self.consume_n_bytes(1)
+    fn consume_one_byte_as_scalar(&mut self) -> u32 {
+        self.consume_n_bytes_as_scalar(1)
     }
 
-    fn consume_two_bytes(&mut self) -> u32 {
-        self.consume_n_bytes(2)
+    fn consume_two_bytes_as_scalar(&mut self) -> u32 {
+        self.consume_n_bytes_as_scalar(2)
     }
 
-    fn consume_three_bytes(&mut self) -> u32 {
-        self.consume_n_bytes(3)
+    fn consume_three_bytes_as_scalar(&mut self) -> u32 {
+        self.consume_n_bytes_as_scalar(3)
     }
 
-    fn consume_four_bytes(&mut self) -> i32 {
-        self.consume_n_bytes(4) as i32
+    fn consume_four_bytes_as_scalar(&mut self) -> i32 {
+        self.consume_n_bytes_as_scalar(4) as i32
     }
 
-    fn consume_n_bytes(&mut self, n: u32) -> u32 {
+    fn consume_n_bytes_as_scalar(&mut self, n: u32) -> u32 {
         debug_assert!(n <= 4, "Can at most read u32 with n == 4");
 
         let mut result: u32 = 0;
@@ -418,6 +456,18 @@ impl Disassembler {
             self.position += 1;
             result |= byte << (8 * i);
         }
+
+        result
+    }
+
+    fn consume_n_bytes_as_vec(&mut self, k: u32) -> Vec<u8> {
+        let mut result = Vec::with_capacity(k as usize);
+
+        for _ in 0..k {
+            result.push(self.consume_one_byte_as_scalar() as u8);
+        }
+
+        assert_eq!(result.len(), k as usize);
 
         result
     }
@@ -830,7 +880,61 @@ mod tests {
         let result = disassemble(vec![238, 0x11, 0x22, 0x33, 0x44]);
 
         assert_that_opcode_was_generated(result, OpCode::Fnt4 {k: 0x11223344 })
-    }    
+    }
+
+    // Xxx
+
+    #[test]
+    fn test_disassemble_xxx1() {
+        let result = disassemble(vec![239, 0x5, 0x1, 0x2, 0x3, 0x4, 0x5]);
+
+        assert_that_opcode_was_generated(
+            result, 
+            OpCode::Xxx1 {
+                k: 0x5,
+                x: vec![1, 2, 3, 4, 5] 
+            }
+        )
+    }
+
+    #[test]
+    fn test_disassemble_xxx2() {
+        let result = disassemble(vec![240, 0x0, 0x5, 0x1, 0x2, 0x3, 0x4, 0x5]);
+
+        assert_that_opcode_was_generated(
+            result, 
+            OpCode::Xxx2 {
+                k: 0x5,
+                x: vec![1, 2, 3, 4, 5] 
+            }
+        )
+    }
+
+    #[test]
+    fn test_disassemble_xxx3() {
+        let result = disassemble(vec![241, 0x0, 0x0, 0x5, 0x1, 0x2, 0x3, 0x4, 0x5]);
+
+        assert_that_opcode_was_generated(
+            result, 
+            OpCode::Xxx3 {
+                k: 0x5,
+                x: vec![1, 2, 3, 4, 5] 
+            }
+        )
+    }
+
+    #[test]
+    fn test_disassemble_xxx4() {
+        let result = disassemble(vec![242, 0x0, 0x0, 0x0, 0x5, 0x1, 0x2, 0x3, 0x4, 0x5]);
+
+        assert_that_opcode_was_generated(
+            result, 
+            OpCode::Xxx4 {
+                k: 0x5,
+                x: vec![1, 2, 3, 4, 5] 
+            }
+        )
+    }            
 
     // Helper
 
