@@ -76,7 +76,8 @@ impl Disassembler {
             167 => self.handle_z1(),
             168 => self.handle_z2(),
             169 => self.handle_z3(),
-            170 => self.handle_z4(), 
+            170 => self.handle_z4(),
+            171...234 => self.handle_fnt_num(byte),
             _ => panic!("Unknown opcode: {}", byte),
         }
     }
@@ -355,6 +356,12 @@ impl Disassembler {
         }
     }
 
+    // Fonts
+
+    fn handle_fnt_num(&mut self, byte: u8) -> OpCode {
+        OpCode::FntNum { k: byte as u32}
+    }
+
     // Read bytes
 
     fn consume_one_byte(&mut self) -> u32 {
@@ -399,7 +406,7 @@ mod tests {
 
     #[test]
     fn test_disassemble_set_char() {
-        for i in 0..127 {
+        for i in 0..127 + 1 {
             let result = disassemble(vec![i]);
 
             assert_that_opcode_was_generated(result, OpCode::SetChar { c: i as u32 })
@@ -756,6 +763,17 @@ mod tests {
         let result = disassemble(vec![170, 0x00, 0x11, 0x22, 0x33]);
 
         assert_that_opcode_was_generated(result, OpCode::Z4 { a: 0x112233 })
+    }
+
+    // Font
+
+    #[test]
+    fn test_disassemble_fnt_num() {
+        for i in 172..234 + 1 {
+            let result = disassemble(vec![i]);
+
+            assert_that_opcode_was_generated(result, OpCode::FntNum { k: i as u32 })
+        }
     }
 
     // Helper
