@@ -26,4 +26,9 @@ pub enum OpCode {
     W2 { b: i32 },
     W3 { b: i32 },
     W4 { b: i32 },
+    X0,
+    X1 { b: i32 },
+    X2 { b: i32 },
+    X3 { b: i32 },
+    X4 { b: i32 },    
 }

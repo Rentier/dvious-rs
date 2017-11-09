@@ -31,7 +31,7 @@ impl Disassembler {
     }
 
     fn disassemble_next(&mut self) -> OpCode {
-        let byte = self.consume_one_byte();
+        let byte = self.consume_one_byte() as u8;
         match byte {
             0...127 => self.handle_set_char(byte),
             128 => self.handle_set1(),
@@ -57,13 +57,20 @@ impl Disassembler {
             148 => self.handle_w1(),
             149 => self.handle_w2(),
             150 => self.handle_w3(),
-            151 => self.handle_w4(),                       
+            151 => self.handle_w4(),    
+            152 => self.handle_x0(),
+            153 => self.handle_x1(),
+            154 => self.handle_x2(),
+            155 => self.handle_x3(),
+            156 => self.handle_x4(),                                
             _ => panic!("Unknown opcode: {}", byte),
         }
     }
 
-    fn handle_set_char(&mut self, byte: u32) -> OpCode {
-        OpCode::SetChar { c: byte }
+    // Set
+
+    fn handle_set_char(&mut self, byte: u8) -> OpCode {
+        OpCode::SetChar { c: byte as u32}
     }
 
     fn handle_set1(&mut self) -> OpCode {
@@ -96,6 +103,8 @@ impl Disassembler {
             b: self.consume_four_bytes(),
         }
     }
+
+    // Put
 
     fn handle_put1(&mut self) -> OpCode {
         OpCode::Put1 {
@@ -159,6 +168,8 @@ impl Disassembler {
     fn handle_pop(&mut self) -> OpCode {
         OpCode::Pop
     }
+
+    // Right
     
     fn handle_right1(&mut self) -> OpCode {
         OpCode::Right1 {
@@ -183,6 +194,8 @@ impl Disassembler {
             b: self.consume_four_bytes(),
         }
     }
+
+    // W
 
     fn handle_w0(&mut self) -> OpCode {
         OpCode::W0
@@ -211,6 +224,36 @@ impl Disassembler {
             b: self.consume_four_bytes(),
         }
     }        
+
+    // X
+
+    fn handle_x0(&mut self) -> OpCode {
+        OpCode::X0
+    }    
+
+    fn handle_x1(&mut self) -> OpCode {
+        OpCode::X1 {
+            b: self.consume_one_byte() as i32,
+        }
+    }
+
+    fn handle_x2(&mut self) -> OpCode {
+        OpCode::X2 {
+            b: self.consume_two_bytes() as i32,
+        }
+    }
+
+    fn handle_x3(&mut self) -> OpCode {
+        OpCode::X3 {
+            b: self.consume_three_bytes() as i32,
+        }
+    }
+
+    fn handle_x4(&mut self) -> OpCode {
+        OpCode::X4 {
+            b: self.consume_four_bytes(),
+        }
+    }
 
     fn consume_one_byte(&mut self) -> u32 {
         self.consume_n_bytes(1)
@@ -470,7 +513,44 @@ mod tests {
         let result = disassemble(vec![151, 0x00, 0x11, 0x22, 0x33]);
 
         assert_that_opcode_was_generated(result, OpCode::W4 { b: 0x112233 })
-    }        
+    }
+
+    // X
+
+   #[test]
+    fn test_disassemble_x0() {
+        let result = disassemble(vec![152]);
+
+        assert_that_opcode_was_generated(result, OpCode::X0)
+    }    
+
+   #[test]
+    fn test_disassemble_x1() {
+        let result = disassemble(vec![153, 0xAB]);
+
+        assert_that_opcode_was_generated(result, OpCode::X1 { b: 0xAB })
+    }
+
+    #[test]
+    fn test_disassemble_x2() {
+        let result = disassemble(vec![154, 0xAB, 0xCD]);
+
+        assert_that_opcode_was_generated(result, OpCode::X2 { b: 0xABCD })
+    }
+
+    #[test]
+    fn test_disassemble_x3() {
+        let result = disassemble(vec![155, 0xAB, 0xCD, 0xEF]);
+
+        assert_that_opcode_was_generated(result, OpCode::X3 { b: 0xABCDEF })
+    }
+
+    #[test]
+    fn test_disassemble_x4() {
+        let result = disassemble(vec![156, 0x00, 0x11, 0x22, 0x33]);
+
+        assert_that_opcode_was_generated(result, OpCode::X4 { b: 0x112233 })
+    }
 
     fn assert_that_opcode_was_generated(result: Vec<OpCode>, opcode: OpCode) {
         assert_eq!(result.len(), 1);
