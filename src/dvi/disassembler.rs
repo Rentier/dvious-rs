@@ -942,8 +942,9 @@ mod tests {
 
     // Helper
 
-    fn assert_that_opcode_was_generated(result: Vec<OpCode>, opcode: OpCode) {
-        assert_eq!(result.len(), 1);
-        assert_eq!(result[0], opcode);
+    fn assert_that_opcode_was_generated(result: Result<Vec<OpCode>, String>, opcode: OpCode) {
+        let opcodes = result.unwrap();
+        assert_eq!(opcodes.len(), 1);
+        assert_eq!(opcodes[0], opcode);
     }
 }
