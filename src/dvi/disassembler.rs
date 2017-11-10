@@ -8,6 +8,8 @@ pub fn disassemble(bytes: Vec<u8>) -> Result<Vec<OpCode>, String> {
 struct Disassembler {
     bytes: Vec<u8>,
     position: usize,
+    last_bop: Option<u32>,
+    number_of_instructions: u32,
 }
 
 impl Disassembler {
@@ -15,12 +17,15 @@ impl Disassembler {
         Disassembler {
             bytes: bytes,
             position: 0,
+            last_bop: Option::None,
+            number_of_instructions: 0,
         }
     }
 
     fn disassemble(&mut self) -> Result<Vec<OpCode>, String> {
-        self.position = 0;
         let mut opcodes = Vec::new();
+        self.position = 0;
+        self.last_bop = Option::None;
 
         while self.has_more() {
             let opcode = match self.disassemble_next() {
@@ -94,8 +99,12 @@ impl Disassembler {
             245 => self.handle_fnt_def3(),
             246 => self.handle_fnt_def4(),
             247 => self.handle_pre(),
+            248 => self.handle_post(),
+            249 => self.handle_post_post(),
             _ => return Err(format!("Unknown opcode: {}", byte)),
         };
+
+        self.number_of_instructions += 1;
         Ok(opcode)
     }
 
@@ -174,6 +183,8 @@ impl Disassembler {
     }
 
     fn handle_bop(&mut self) -> OpCode {
+        self.last_bop = Some(self.number_of_instructions);
+
         OpCode::Bop {
             c0: self.consume_four_bytes_as_scalar(),
             c1: self.consume_four_bytes_as_scalar(),
@@ -494,7 +505,26 @@ impl Disassembler {
             k: k, 
             x: self.consume_n_bytes_as_vec(k as u32),
         }
-    }    
+    }
+
+    fn handle_post(&mut self) -> OpCode {
+        self.consume_four_bytes_as_scalar();
+
+        OpCode::Post { 
+            p: self.last_bop.map(|x| x as i32).unwrap_or(-1),
+            num: self.consume_four_bytes_as_scalar() as u32,
+            den: self.consume_four_bytes_as_scalar() as u32,
+            mag: self.consume_four_bytes_as_scalar() as u32,
+            l : self.consume_four_bytes_as_scalar() as u32,
+            u : self.consume_four_bytes_as_scalar() as u32,
+            s : self.consume_two_bytes_as_scalar() as u16,
+            t : self.consume_two_bytes_as_scalar() as u16,
+        }
+    }
+
+    fn handle_post_post(&mut self) -> OpCode {
+        OpCode::Nop
+    }
 
     // Read bytes
 
@@ -1137,6 +1167,35 @@ mod tests {
                 mag: 0xBAAAAAAD, 
                 k: 0x5, 
                 x: vec![1, 2, 3, 4, 5],
+            }
+        )
+    }
+
+    #[test]
+    fn test_disassemble_post() {
+        let result = disassemble(vec![
+            248,
+            0x00, 0x00, 0x00, 0x42,
+            0xDE, 0xAD, 0xBE, 0xEF, 
+            0xCA, 0xFE, 0xBA, 0xBE, 
+            0xBA, 0xAA, 0xAA, 0xAD,
+            0xDE, 0xAD, 0xC0, 0xDE,
+            0xB1, 0x05, 0xF0, 0x0D,
+            0xAB, 0xCD,
+            0xDC, 0xBA,
+        ]);
+
+        assert_that_opcode_was_generated(
+            result, 
+            OpCode::Post {
+                p: -1,
+                num: 0xDEADBEEF,
+                den: 0xCAFEBABE,
+                mag: 0xBAAAAAAD,
+                l: 0xDEADC0DE,
+                u: 0xB105F00D,
+                s: 0xABCD,
+                t: 0xDCBA,
             }
         )
     }
