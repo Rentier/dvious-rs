@@ -9,6 +9,7 @@ use clap::{App, AppSettings, Arg, SubCommand};
 
 mod dvi;
 use dvi::disassembler::disassemble;
+use dvi::opcodes::OpCode;
 
 #[allow(unused_variables)]
 fn main() {
@@ -66,7 +67,12 @@ fn disassemble_file(input: &str) -> Result<(), String> {
     };
 
     for opcode in opcodes {
-        println!("{}", opcode);
+        match opcode {
+            OpCode::Pre { ref x, .. } => println!("{} | {}", opcode, String::from_utf8_lossy(x)),
+            OpCode::FntDef { ref n, .. } => println!("{} | {}", opcode, String::from_utf8_lossy(n)),
+            OpCode::Xxx { ref x, .. } => println!("{} | {}", opcode, String::from_utf8_lossy(x)),
+            _ => println!("{}", opcode),
+        }
     }
 
     Ok(())
