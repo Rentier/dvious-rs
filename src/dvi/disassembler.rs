@@ -8,8 +8,9 @@ pub fn disassemble(bytes: Vec<u8>) -> Result<Vec<OpCode>, String> {
 struct Disassembler {
     bytes: Vec<u8>,
     position: usize,
-    last_bop: Option<u32>,
-    number_of_instructions: u32,
+    last_bop: Option<usize>,
+    last_post: Option<usize>,
+    number_of_instructions: usize,
 }
 
 impl Disassembler {
@@ -18,6 +19,7 @@ impl Disassembler {
             bytes: bytes,
             position: 0,
             last_bop: Option::None,
+            last_post: Option::None,
             number_of_instructions: 0,
         }
     }
@@ -509,9 +511,10 @@ impl Disassembler {
 
     fn handle_post(&mut self) -> OpCode {
         self.consume_four_bytes_as_scalar();
+        self.last_post = Option::Some(self.number_of_instructions);
 
         OpCode::Post { 
-            p: self.last_bop.map(|x| x as i32).unwrap_or(-1),
+            p: self.last_bop,
             num: self.consume_four_bytes_as_scalar() as u32,
             den: self.consume_four_bytes_as_scalar() as u32,
             mag: self.consume_four_bytes_as_scalar() as u32,
@@ -523,7 +526,19 @@ impl Disassembler {
     }
 
     fn handle_post_post(&mut self) -> OpCode {
-        OpCode::Nop
+        self.consume_four_bytes_as_scalar();
+
+        let result = OpCode::PostPost { 
+            q: self.last_post,
+            i: self.consume_one_byte_as_scalar()
+        };
+
+        // Consume padding
+        while self.position < self.bytes.len() && self.bytes[self.position] == 223 {
+            self.consume_one_byte_as_scalar();
+        };
+        
+        result
     }
 
     // Read bytes
@@ -1188,7 +1203,7 @@ mod tests {
         assert_that_opcode_was_generated(
             result, 
             OpCode::Post {
-                p: -1,
+                p: Option::None,
                 num: 0xDEADBEEF,
                 den: 0xCAFEBABE,
                 mag: 0xBAAAAAAD,
@@ -1196,6 +1211,24 @@ mod tests {
                 u: 0xB105F00D,
                 s: 0xABCD,
                 t: 0xDCBA,
+            }
+        )
+    }
+
+    #[test]
+    fn test_disassemble_post_post() {
+        let result = disassemble(vec![
+            249,
+            0xAB, 0xCD, 0xEF, 0xAA,
+            0x42,
+            0xDF, 0xDF
+        ]);
+
+        assert_that_opcode_was_generated(
+            result, 
+            OpCode::PostPost {
+                q: Option::None,
+                i: 0x42,
             }
         )
     }

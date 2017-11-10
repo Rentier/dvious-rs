@@ -28,7 +28,8 @@ pub enum OpCode {
     Xxx { k: i32, x: Vec<u8> },
     FntDef { k: i32, c: u32, s: u32, d: u32, a: u8, l: u8, n: Vec<u8> },
     Pre { i: u8, num: u32, den: u32, mag: u32, k: u8, x: Vec<u8> },
-    Post { p: i32, num: u32, den: u32, mag: u32, l: u32, u: u32, s: u16, t: u16 }
+    Post { p: Option<usize>, num: u32, den: u32, mag: u32, l: u32, u: u32, s: u16, t: u16 },
+    PostPost { q: Option<usize>, i: u8 }
 }
 
 impl fmt::Display for OpCode {
