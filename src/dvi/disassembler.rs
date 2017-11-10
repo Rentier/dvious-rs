@@ -89,6 +89,10 @@ impl Disassembler {
             240 => self.handle_xxx2(),
             241 => self.handle_xxx3(),
             242 => self.handle_xxx4(),
+            243 => self.handle_fnt_def1(),
+            244 => self.handle_fnt_def2(),
+            245 => self.handle_fnt_def3(),
+            246 => self.handle_fnt_def4(),
             _ => return Err(format!("Unknown opcode: {}", byte)),
         };
         Ok(opcode)
@@ -101,25 +105,25 @@ impl Disassembler {
     }
 
     fn handle_set1(&mut self) -> OpCode {
-        OpCode::Set1 {
-            c: self.consume_one_byte_as_scalar(),
+        OpCode::Set {
+            c: self.consume_one_byte_as_scalar() as i32,
         }
     }
 
     fn handle_set2(&mut self) -> OpCode {
-        OpCode::Set2 {
-            c: self.consume_two_bytes_as_scalar(),
+        OpCode::Set {
+            c: self.consume_two_bytes_as_scalar() as i32,
         }
     }
 
     fn handle_set3(&mut self) -> OpCode {
-        OpCode::Set3 {
-            c: self.consume_three_bytes_as_scalar(),
+        OpCode::Set {
+            c: self.consume_three_bytes_as_scalar() as i32,
         }
     }
 
     fn handle_set4(&mut self) -> OpCode {
-        OpCode::Set4 {
+        OpCode::Set {
             c: self.consume_four_bytes_as_scalar(),
         }
     }
@@ -134,26 +138,26 @@ impl Disassembler {
     // Put
 
     fn handle_put1(&mut self) -> OpCode {
-        OpCode::Put1 {
-            c: self.consume_one_byte_as_scalar(),
+        OpCode::Put {
+            c: self.consume_one_byte_as_scalar() as i32,
         }
     }
 
     fn handle_put2(&mut self) -> OpCode {
-        OpCode::Put2 {
-            c: self.consume_two_bytes_as_scalar(),
+        OpCode::Put {
+            c: self.consume_two_bytes_as_scalar() as i32,
         }
     }
 
     fn handle_put3(&mut self) -> OpCode {
-        OpCode::Put3 {
-            c: self.consume_three_bytes_as_scalar(),
+        OpCode::Put {
+            c: self.consume_three_bytes_as_scalar() as i32,
         }
     }
 
     fn handle_put4(&mut self) -> OpCode {
-        OpCode::Put4 {
-            c: self.consume_four_bytes_as_scalar(),
+        OpCode::Put {
+            c: self.consume_four_bytes_as_scalar() as i32,
         }
     }
 
@@ -199,25 +203,25 @@ impl Disassembler {
     // Right
     
     fn handle_right1(&mut self) -> OpCode {
-        OpCode::Right1 {
+        OpCode::Right {
             b: self.consume_one_byte_as_scalar() as i32,
         }
     }
 
     fn handle_right2(&mut self) -> OpCode {
-        OpCode::Right2 {
+        OpCode::Right {
             b: self.consume_two_bytes_as_scalar() as i32,
         }
     }
 
     fn handle_right3(&mut self) -> OpCode {
-        OpCode::Right3 {
+        OpCode::Right {
             b: self.consume_three_bytes_as_scalar() as i32,
         }
     }
 
     fn handle_right4(&mut self) -> OpCode {
-        OpCode::Right4 {
+        OpCode::Right {
             b: self.consume_four_bytes_as_scalar(),
         }
     }
@@ -229,25 +233,25 @@ impl Disassembler {
     }    
 
     fn handle_w1(&mut self) -> OpCode {
-        OpCode::W1 {
+        OpCode::W {
             b: self.consume_one_byte_as_scalar() as i32,
         }
     }
 
     fn handle_w2(&mut self) -> OpCode {
-        OpCode::W2 {
+        OpCode::W {
             b: self.consume_two_bytes_as_scalar() as i32,
         }
     }
 
     fn handle_w3(&mut self) -> OpCode {
-        OpCode::W3 {
+        OpCode::W {
             b: self.consume_three_bytes_as_scalar() as i32,
         }
     }
 
     fn handle_w4(&mut self) -> OpCode {
-        OpCode::W4 {
+        OpCode::W {
             b: self.consume_four_bytes_as_scalar(),
         }
     }        
@@ -259,25 +263,25 @@ impl Disassembler {
     }    
 
     fn handle_x1(&mut self) -> OpCode {
-        OpCode::X1 {
+        OpCode::X {
             b: self.consume_one_byte_as_scalar() as i32,
         }
     }
 
     fn handle_x2(&mut self) -> OpCode {
-        OpCode::X2 {
+        OpCode::X {
             b: self.consume_two_bytes_as_scalar() as i32,
         }
     }
 
     fn handle_x3(&mut self) -> OpCode {
-        OpCode::X3 {
+        OpCode::X {
             b: self.consume_three_bytes_as_scalar() as i32,
         }
     }
 
     fn handle_x4(&mut self) -> OpCode {
-        OpCode::X4 {
+        OpCode::X {
             b: self.consume_four_bytes_as_scalar(),
         }
     }
@@ -285,25 +289,25 @@ impl Disassembler {
     // Down
 
     fn handle_down1(&mut self) -> OpCode {
-        OpCode::Down1 {
+        OpCode::Down {
             a: self.consume_one_byte_as_scalar() as i32,
         }
     }
 
     fn handle_down2(&mut self) -> OpCode {
-        OpCode::Down2 {
+        OpCode::Down {
             a: self.consume_two_bytes_as_scalar() as i32,
         }
     }
 
     fn handle_down3(&mut self) -> OpCode {
-        OpCode::Down3 {
+        OpCode::Down {
             a: self.consume_three_bytes_as_scalar() as i32,
         }
     }
 
     fn handle_down4(&mut self) -> OpCode {
-        OpCode::Down4 {
+        OpCode::Down {
             a: self.consume_four_bytes_as_scalar(),
         }
     }
@@ -315,25 +319,25 @@ impl Disassembler {
     }    
 
     fn handle_y1(&mut self) -> OpCode {
-        OpCode::Y1 {
+        OpCode::Y {
             a: self.consume_one_byte_as_scalar() as i32,
         }
     }
 
     fn handle_y2(&mut self) -> OpCode {
-        OpCode::Y2 {
+        OpCode::Y {
             a: self.consume_two_bytes_as_scalar() as i32,
         }
     }
 
     fn handle_y3(&mut self) -> OpCode {
-        OpCode::Y3 {
+        OpCode::Y {
             a: self.consume_three_bytes_as_scalar() as i32,
         }
     }
 
     fn handle_y4(&mut self) -> OpCode {
-        OpCode::Y4 {
+        OpCode::Y {
             a: self.consume_four_bytes_as_scalar(),
         }
     }
@@ -345,25 +349,25 @@ impl Disassembler {
     }
 
     fn handle_z1(&mut self) -> OpCode {
-        OpCode::Z1 {
+        OpCode::Z {
             a: self.consume_one_byte_as_scalar() as i32,
         }
     }
 
     fn handle_z2(&mut self) -> OpCode {
-        OpCode::Z2 {
+        OpCode::Z {
             a: self.consume_two_bytes_as_scalar() as i32,
         }
     }
 
     fn handle_z3(&mut self) -> OpCode {
-        OpCode::Z3 {
+        OpCode::Z {
             a: self.consume_three_bytes_as_scalar() as i32,
         }
     }
 
     fn handle_z4(&mut self) -> OpCode {
-        OpCode::Z4 {
+        OpCode::Z {
             a: self.consume_four_bytes_as_scalar(),
         }
     }
@@ -375,25 +379,25 @@ impl Disassembler {
     }
 
     fn handle_fnt1(&mut self) -> OpCode {
-        OpCode::Fnt1 {
-            k: self.consume_one_byte_as_scalar(),
+        OpCode::Fnt {
+            k: self.consume_one_byte_as_scalar() as i32,
         }
     }
 
     fn handle_fnt2(&mut self) -> OpCode {
-        OpCode::Fnt2 {
-            k: self.consume_two_bytes_as_scalar(),
+        OpCode::Fnt {
+            k: self.consume_two_bytes_as_scalar() as i32,
         }
     }
 
     fn handle_fnt3(&mut self) -> OpCode {
-        OpCode::Fnt3 {
-            k: self.consume_three_bytes_as_scalar(),
+        OpCode::Fnt {
+            k: self.consume_three_bytes_as_scalar() as i32,
         }
     }
 
     fn handle_fnt4(&mut self) -> OpCode {
-        OpCode::Fnt4 {
+        OpCode::Fnt {
             k: self.consume_four_bytes_as_scalar(),
         }
     }
@@ -401,41 +405,78 @@ impl Disassembler {
     // Xxx
 
     fn handle_xxx1(&mut self) -> OpCode {
-        let k = self.consume_one_byte_as_scalar();
-        OpCode::Xxx1 {
-            k: k,
-            x: self.consume_n_bytes_as_vec(k)
-        }
-    }
-
-    fn handle_xxx2(&mut self) -> OpCode {
-        let k = self.consume_two_bytes_as_scalar();
-        OpCode::Xxx2 {
-            k: k,
-            x: self.consume_n_bytes_as_vec(k)
-        }
-    }
-
-    fn handle_xxx3(&mut self) -> OpCode {
-        let k = self.consume_three_bytes_as_scalar();
-        OpCode::Xxx3 {
-            k: k,
-            x: self.consume_n_bytes_as_vec(k)
-        }
-    }        
-
-    fn handle_xxx4(&mut self) -> OpCode {
-        let k = self.consume_four_bytes_as_scalar();
-        OpCode::Xxx4 {
+        let k = self.consume_one_byte_as_scalar() as i32;
+        OpCode::Xxx {
             k: k,
             x: self.consume_n_bytes_as_vec(k as u32)
         }
     }
 
+    fn handle_xxx2(&mut self) -> OpCode {
+        let k = self.consume_two_bytes_as_scalar() as i32;
+        OpCode::Xxx {
+            k: k,
+            x: self.consume_n_bytes_as_vec(k as u32)
+        }
+    }
+
+    fn handle_xxx3(&mut self) -> OpCode {
+        let k = self.consume_three_bytes_as_scalar() as i32;
+        OpCode::Xxx {
+            k: k,
+            x: self.consume_n_bytes_as_vec(k as u32)
+        }
+    }        
+
+    fn handle_xxx4(&mut self) -> OpCode {
+        let k = self.consume_four_bytes_as_scalar()  as i32;
+        OpCode::Xxx {
+            k: k,
+            x: self.consume_n_bytes_as_vec(k as u32)
+        }
+    }
+    
+    // fnt_def
+
+    fn handle_fnt_def1(&mut self) -> OpCode {
+        let k = self.consume_one_byte_as_scalar();
+        self.handle_fnt_def(k as i32)
+    }
+
+    fn handle_fnt_def2(&mut self) -> OpCode {
+        let k = self.consume_two_bytes_as_scalar();
+        self.handle_fnt_def(k as i32)
+    }
+
+    fn handle_fnt_def3(&mut self) -> OpCode {
+        let k = self.consume_three_bytes_as_scalar();
+        self.handle_fnt_def(k as i32)
+    }
+
+    fn handle_fnt_def4(&mut self) -> OpCode {
+        let k = self.consume_four_bytes_as_scalar();
+        self.handle_fnt_def(k)
+    }
+
+    fn handle_fnt_def(&mut self, k: i32) -> OpCode {
+        let a = self.consume_one_byte_as_scalar();
+        let l = self.consume_one_byte_as_scalar();
+    
+        OpCode::FntDef {
+            k: k,
+            c: self.consume_four_bytes_as_scalar(), 
+            s: self.consume_four_bytes_as_scalar(), 
+            d: self.consume_four_bytes_as_scalar(), 
+            a: a, 
+            l: l, 
+            n: self.consume_n_bytes_as_vec((a + l) as u32),
+        }
+    }
+
     // Read bytes
 
-    fn consume_one_byte_as_scalar(&mut self) -> u32 {
-        self.consume_n_bytes_as_scalar(1)
+    fn consume_one_byte_as_scalar(&mut self) -> u8 {
+        self.consume_n_bytes_as_scalar(1) as u8
     }
 
     fn consume_two_bytes_as_scalar(&mut self) -> u32 {
@@ -499,28 +540,28 @@ mod tests {
     fn test_disassemble_set1() {
         let result = disassemble(vec![128, 0xAB]);
 
-        assert_that_opcode_was_generated(result, OpCode::Set1 { c: 0xAB })
+        assert_that_opcode_was_generated(result, OpCode::Set { c: 0xAB })
     }
 
     #[test]
     fn test_disassemble_set2() {
         let result = disassemble(vec![129, 0xAB, 0xCD]);
 
-        assert_that_opcode_was_generated(result, OpCode::Set2 { c: 0xABCD })
+        assert_that_opcode_was_generated(result, OpCode::Set { c: 0xABCD })
     }
 
     #[test]
     fn test_disassemble_set3() {
         let result = disassemble(vec![130, 0xAB, 0xCD, 0xEF]);
 
-        assert_that_opcode_was_generated(result, OpCode::Set3 { c: 0xABCDEF })
+        assert_that_opcode_was_generated(result, OpCode::Set { c: 0xABCDEF })
     }
 
     #[test]
     fn test_disassemble_set4() {
         let result = disassemble(vec![131, 0x00, 0x11, 0x22, 0x33]);
 
-        assert_that_opcode_was_generated(result, OpCode::Set4 { c: 0x112233 })
+        assert_that_opcode_was_generated(result, OpCode::Set { c: 0x112233 })
     }
 
     #[test]
@@ -540,28 +581,28 @@ mod tests {
     fn test_disassemble_put1() {
         let result = disassemble(vec![133, 0xAB]);
 
-        assert_that_opcode_was_generated(result, OpCode::Put1 { c: 0xAB })
+        assert_that_opcode_was_generated(result, OpCode::Put { c: 0xAB })
     }
 
     #[test]
     fn test_disassemble_put2() {
         let result = disassemble(vec![134, 0xAB, 0xCD]);
 
-        assert_that_opcode_was_generated(result, OpCode::Put2 { c: 0xABCD })
+        assert_that_opcode_was_generated(result, OpCode::Put { c: 0xABCD })
     }
 
     #[test]
     fn test_disassemble_put3() {
         let result = disassemble(vec![135, 0xAB, 0xCD, 0xEF]);
 
-        assert_that_opcode_was_generated(result, OpCode::Put3 { c: 0xABCDEF })
+        assert_that_opcode_was_generated(result, OpCode::Put { c: 0xABCDEF })
     }
 
     #[test]
     fn test_disassemble_put4() {
         let result = disassemble(vec![136, 0x00, 0x11, 0x22, 0x33]);
 
-        assert_that_opcode_was_generated(result, OpCode::Put4 { c: 0x112233 })
+        assert_that_opcode_was_generated(result, OpCode::Put { c: 0x112233 })
     }
 
     #[test]
@@ -645,28 +686,28 @@ mod tests {
     fn test_disassemble_right1() {
         let result = disassemble(vec![143, 0xAB]);
 
-        assert_that_opcode_was_generated(result, OpCode::Right1 { b: 0xAB })
+        assert_that_opcode_was_generated(result, OpCode::Right { b: 0xAB })
     }
 
     #[test]
     fn test_disassemble_right2() {
         let result = disassemble(vec![144, 0xAB, 0xCD]);
 
-        assert_that_opcode_was_generated(result, OpCode::Right2 { b: 0xABCD })
+        assert_that_opcode_was_generated(result, OpCode::Right { b: 0xABCD })
     }
 
     #[test]
     fn test_disassemble_right3() {
         let result = disassemble(vec![145, 0xAB, 0xCD, 0xEF]);
 
-        assert_that_opcode_was_generated(result, OpCode::Right3 { b: 0xABCDEF })
+        assert_that_opcode_was_generated(result, OpCode::Right { b: 0xABCDEF })
     }
 
     #[test]
     fn test_disassemble_right4() {
         let result = disassemble(vec![146, 0x00, 0x11, 0x22, 0x33]);
 
-        assert_that_opcode_was_generated(result, OpCode::Right4 { b: 0x112233 })
+        assert_that_opcode_was_generated(result, OpCode::Right { b: 0x112233 })
     }
 
     // W
@@ -682,28 +723,28 @@ mod tests {
     fn test_disassemble_w1() {
         let result = disassemble(vec![148, 0xAB]);
 
-        assert_that_opcode_was_generated(result, OpCode::W1 { b: 0xAB })
+        assert_that_opcode_was_generated(result, OpCode::W { b: 0xAB })
     }
 
     #[test]
     fn test_disassemble_w2() {
         let result = disassemble(vec![149, 0xAB, 0xCD]);
 
-        assert_that_opcode_was_generated(result, OpCode::W2 { b: 0xABCD })
+        assert_that_opcode_was_generated(result, OpCode::W { b: 0xABCD })
     }
 
     #[test]
     fn test_disassemble_w3() {
         let result = disassemble(vec![150, 0xAB, 0xCD, 0xEF]);
 
-        assert_that_opcode_was_generated(result, OpCode::W3 { b: 0xABCDEF })
+        assert_that_opcode_was_generated(result, OpCode::W { b: 0xABCDEF })
     }
 
     #[test]
     fn test_disassemble_w4() {
         let result = disassemble(vec![151, 0x00, 0x11, 0x22, 0x33]);
 
-        assert_that_opcode_was_generated(result, OpCode::W4 { b: 0x112233 })
+        assert_that_opcode_was_generated(result, OpCode::W { b: 0x112233 })
     }
 
     // X
@@ -719,28 +760,28 @@ mod tests {
     fn test_disassemble_x1() {
         let result = disassemble(vec![153, 0xAB]);
 
-        assert_that_opcode_was_generated(result, OpCode::X1 { b: 0xAB })
+        assert_that_opcode_was_generated(result, OpCode::X { b: 0xAB })
     }
 
     #[test]
     fn test_disassemble_x2() {
         let result = disassemble(vec![154, 0xAB, 0xCD]);
 
-        assert_that_opcode_was_generated(result, OpCode::X2 { b: 0xABCD })
+        assert_that_opcode_was_generated(result, OpCode::X { b: 0xABCD })
     }
 
     #[test]
     fn test_disassemble_x3() {
         let result = disassemble(vec![155, 0xAB, 0xCD, 0xEF]);
 
-        assert_that_opcode_was_generated(result, OpCode::X3 { b: 0xABCDEF })
+        assert_that_opcode_was_generated(result, OpCode::X { b: 0xABCDEF })
     }
 
     #[test]
     fn test_disassemble_x4() {
         let result = disassemble(vec![156, 0x00, 0x11, 0x22, 0x33]);
 
-        assert_that_opcode_was_generated(result, OpCode::X4 { b: 0x112233 })
+        assert_that_opcode_was_generated(result, OpCode::X { b: 0x112233 })
     }   
 
     // Down
@@ -749,28 +790,28 @@ mod tests {
     fn test_disassemble_down1() {
         let result = disassemble(vec![157, 0xAB]);
 
-        assert_that_opcode_was_generated(result, OpCode::Down1 { a: 0xAB })
+        assert_that_opcode_was_generated(result, OpCode::Down { a: 0xAB })
     }
 
     #[test]
     fn test_disassemble_down2() {
         let result = disassemble(vec![158, 0xAB, 0xCD]);
 
-        assert_that_opcode_was_generated(result, OpCode::Down2 { a: 0xABCD })
+        assert_that_opcode_was_generated(result, OpCode::Down { a: 0xABCD })
     }
 
     #[test]
     fn test_disassemble_down3() {
         let result = disassemble(vec![159, 0xAB, 0xCD, 0xEF]);
 
-        assert_that_opcode_was_generated(result, OpCode::Down3 { a: 0xABCDEF })
+        assert_that_opcode_was_generated(result, OpCode::Down { a: 0xABCDEF })
     }
 
     #[test]
     fn test_disassemble_down4() {
         let result = disassemble(vec![160, 0x00, 0x11, 0x22, 0x33]);
 
-        assert_that_opcode_was_generated(result, OpCode::Down4 { a: 0x112233 })
+        assert_that_opcode_was_generated(result, OpCode::Down { a: 0x112233 })
     }
 
     // Y
@@ -786,28 +827,28 @@ mod tests {
     fn test_disassemble_y1() {
         let result = disassemble(vec![162, 0xAB]);
 
-        assert_that_opcode_was_generated(result, OpCode::Y1 { a: 0xAB })
+        assert_that_opcode_was_generated(result, OpCode::Y { a: 0xAB })
     }
 
     #[test]
     fn test_disassemble_y2() {
         let result = disassemble(vec![163, 0xAB, 0xCD]);
 
-        assert_that_opcode_was_generated(result, OpCode::Y2 { a: 0xABCD })
+        assert_that_opcode_was_generated(result, OpCode::Y { a: 0xABCD })
     }
 
     #[test]
     fn test_disassemble_y3() {
         let result = disassemble(vec![164, 0xAB, 0xCD, 0xEF]);
 
-        assert_that_opcode_was_generated(result, OpCode::Y3 { a: 0xABCDEF })
+        assert_that_opcode_was_generated(result, OpCode::Y { a: 0xABCDEF })
     }
 
     #[test]
     fn test_disassemble_y4() {
         let result = disassemble(vec![165, 0x00, 0x11, 0x22, 0x33]);
 
-        assert_that_opcode_was_generated(result, OpCode::Y4 { a: 0x112233 })
+        assert_that_opcode_was_generated(result, OpCode::Y { a: 0x112233 })
     }
 
     // Z
@@ -823,28 +864,28 @@ mod tests {
     fn test_disassemble_z1() {
         let result = disassemble(vec![167, 0xAB]);
 
-        assert_that_opcode_was_generated(result, OpCode::Z1 { a: 0xAB })
+        assert_that_opcode_was_generated(result, OpCode::Z { a: 0xAB })
     }
 
     #[test]
     fn test_disassemble_z2() {
         let result = disassemble(vec![168, 0xAB, 0xCD]);
 
-        assert_that_opcode_was_generated(result, OpCode::Z2 { a: 0xABCD })
+        assert_that_opcode_was_generated(result, OpCode::Z { a: 0xABCD })
     }
 
     #[test]
     fn test_disassemble_z3() {
         let result = disassemble(vec![169, 0xAB, 0xCD, 0xEF]);
 
-        assert_that_opcode_was_generated(result, OpCode::Z3 { a: 0xABCDEF })
+        assert_that_opcode_was_generated(result, OpCode::Z { a: 0xABCDEF })
     }
 
     #[test]
     fn test_disassemble_z4() {
         let result = disassemble(vec![170, 0x00, 0x11, 0x22, 0x33]);
 
-        assert_that_opcode_was_generated(result, OpCode::Z4 { a: 0x112233 })
+        assert_that_opcode_was_generated(result, OpCode::Z { a: 0x112233 })
     }
 
     // Font
@@ -862,28 +903,28 @@ mod tests {
     fn test_disassemble_fnt1() {
         let result = disassemble(vec![235, 0xAB]);
 
-        assert_that_opcode_was_generated(result, OpCode::Fnt1 {k: 0xAB })
+        assert_that_opcode_was_generated(result, OpCode::Fnt {k: 0xAB })
     }
 
     #[test]
     fn test_disassemble_fnt2() {
         let result = disassemble(vec![236, 0xAB, 0xCD]);
 
-        assert_that_opcode_was_generated(result, OpCode::Fnt2 {k: 0xABCD })
+        assert_that_opcode_was_generated(result, OpCode::Fnt {k: 0xABCD })
     }
 
     #[test]
     fn test_disassemble_fnt3() {
         let result = disassemble(vec![237, 0xAB, 0xCD, 0xEF]);
 
-        assert_that_opcode_was_generated(result, OpCode::Fnt3 {k: 0xABCDEF })
+        assert_that_opcode_was_generated(result, OpCode::Fnt {k: 0xABCDEF })
     }
 
     #[test]
     fn test_disassemble_fnt4() {
         let result = disassemble(vec![238, 0x11, 0x22, 0x33, 0x44]);
 
-        assert_that_opcode_was_generated(result, OpCode::Fnt4 {k: 0x11223344 })
+        assert_that_opcode_was_generated(result, OpCode::Fnt {k: 0x11223344 })
     }
 
     // Xxx
@@ -894,7 +935,7 @@ mod tests {
 
         assert_that_opcode_was_generated(
             result, 
-            OpCode::Xxx1 {
+            OpCode::Xxx {
                 k: 0x5,
                 x: vec![1, 2, 3, 4, 5] 
             }
@@ -907,7 +948,7 @@ mod tests {
 
         assert_that_opcode_was_generated(
             result, 
-            OpCode::Xxx2 {
+            OpCode::Xxx {
                 k: 0x5,
                 x: vec![1, 2, 3, 4, 5] 
             }
@@ -920,7 +961,7 @@ mod tests {
 
         assert_that_opcode_was_generated(
             result, 
-            OpCode::Xxx3 {
+            OpCode::Xxx {
                 k: 0x5,
                 x: vec![1, 2, 3, 4, 5] 
             }
@@ -933,12 +974,12 @@ mod tests {
 
         assert_that_opcode_was_generated(
             result, 
-            OpCode::Xxx4 {
+            OpCode::Xxx {
                 k: 0x5,
                 x: vec![1, 2, 3, 4, 5] 
             }
         )
-    }            
+    }
 
     // Helper
 
