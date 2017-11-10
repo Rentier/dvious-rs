@@ -459,17 +459,20 @@ impl Disassembler {
     }
 
     fn handle_fnt_def(&mut self, k: i32) -> OpCode {
+        let c = self.consume_four_bytes_as_scalar() as u32; 
+        let s = self.consume_four_bytes_as_scalar() as u32; 
+        let d = self.consume_four_bytes_as_scalar() as u32; 
         let a = self.consume_one_byte_as_scalar();
         let l = self.consume_one_byte_as_scalar();
     
         OpCode::FntDef {
             k: k,
-            c: self.consume_four_bytes_as_scalar(), 
-            s: self.consume_four_bytes_as_scalar(), 
-            d: self.consume_four_bytes_as_scalar(), 
+            c: c, 
+            s: s, 
+            d: d, 
             a: a, 
             l: l, 
-            n: self.consume_n_bytes_as_vec((a + l) as u32),
+            n: self.consume_n_bytes_as_vec(a as u32 + l as u32),
         }
     }
 
@@ -977,6 +980,111 @@ mod tests {
             OpCode::Xxx {
                 k: 0x5,
                 x: vec![1, 2, 3, 4, 5] 
+            }
+        )
+    }
+
+    #[test]
+    fn test_disassemble_fnt_def1() {
+        let result = disassemble(vec![
+            243, 
+            0x42, 
+            0xDE, 0xAD, 0xBE, 0xEF, 
+            0xCA, 0xFE, 0xBA, 0xBE, 
+            0xBA, 0xAA, 0xAA, 0xAD,
+            0x2,
+            0x3,
+            0x1, 0x2, 0x3, 0x4, 0x5
+        ]);
+
+        assert_that_opcode_was_generated(
+            result, 
+            OpCode::FntDef {
+                k: 0x42,
+                c: 0xDEADBEEF,
+                s: 0xCAFEBABE,
+                d: 0xBAAAAAAD,
+                a: 0x2,
+                l: 0x3,
+                n: vec![1, 2, 3, 4, 5]
+            }
+        )
+    }
+    #[test]
+    fn test_disassemble_fnt_def2() {
+        let result = disassemble(vec![
+            244, 
+            0xAB, 0xCD, 
+            0xDE, 0xAD, 0xBE, 0xEF, 
+            0xCA, 0xFE, 0xBA, 0xBE, 
+            0xBA, 0xAA, 0xAA, 0xAD,
+            0x2,
+            0x3,
+            0x1, 0x2, 0x3, 0x4, 0x5
+        ]);
+
+        assert_that_opcode_was_generated(
+            result, 
+            OpCode::FntDef {
+                k: 0xABCD,
+                c: 0xDEADBEEF,
+                s: 0xCAFEBABE,
+                d: 0xBAAAAAAD,
+                a: 0x2,
+                l: 0x3,
+                n: vec![1, 2, 3, 4, 5]
+            }
+        )
+    }
+    #[test]
+    fn test_disassemble_fnt_def3() {
+        let result = disassemble(vec![
+            245, 
+            0xAB, 0xCD, 0xEF, 
+            0xDE, 0xAD, 0xBE, 0xEF, 
+            0xCA, 0xFE, 0xBA, 0xBE, 
+            0xBA, 0xAA, 0xAA, 0xAD,
+            0x2,
+            0x3,
+            0x1, 0x2, 0x3, 0x4, 0x5
+        ]);
+
+        assert_that_opcode_was_generated(
+            result, 
+            OpCode::FntDef {
+                k: 0xABCDEF,
+                c: 0xDEADBEEF,
+                s: 0xCAFEBABE,
+                d: 0xBAAAAAAD,
+                a: 0x2,
+                l: 0x3,
+                n: vec![1, 2, 3, 4, 5]
+            }
+        )
+    }
+    #[test]
+    fn test_disassemble_fnt_def4() {
+        let result = disassemble(vec![
+            246, 
+            0x0A, 0xBC, 0xDE, 0x12, 
+            0xDE, 0xAD, 0xBE, 0xEF, 
+            0xCA, 0xFE, 0xBA, 0xBE, 
+            0xBA, 0xAA, 0xAA, 0xAD,
+            0x2,
+            0x3,
+            0x1, 0x2, 0x3, 0x4, 0x5
+        ]);
+
+        assert_that_opcode_was_generated(
+            result, 
+            OpCode::FntDef {
+                k: 0x0ABCDE12,
+                c: 0xDEADBEEF,
+                s: 0xCAFEBABE,
+                d: 0xBAAAAAAD ,
+                a: 0x2,
+                l: 0x3,
+                n: vec![1, 2, 3, 4, 5]
             }
         )
     }
