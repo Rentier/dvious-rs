@@ -93,6 +93,7 @@ impl Disassembler {
             244 => self.handle_fnt_def2(),
             245 => self.handle_fnt_def3(),
             246 => self.handle_fnt_def4(),
+            247 => self.handle_pre(),
             _ => return Err(format!("Unknown opcode: {}", byte)),
         };
         Ok(opcode)
@@ -475,6 +476,25 @@ impl Disassembler {
             n: self.consume_n_bytes_as_vec(a as u32 + l as u32),
         }
     }
+
+    // Pre and post
+
+    fn handle_pre(&mut self) -> OpCode {
+        let i = self.consume_one_byte_as_scalar(); 
+        let num = self.consume_four_bytes_as_scalar() as u32; 
+        let den = self.consume_four_bytes_as_scalar() as u32; 
+        let mag = self.consume_four_bytes_as_scalar() as u32;
+        let k = self.consume_one_byte_as_scalar();
+    
+        OpCode::Pre {
+            i: i,
+            num: num, 
+            den: den, 
+            mag: mag, 
+            k: k, 
+            x: self.consume_n_bytes_as_vec(k as u32),
+        }
+    }    
 
     // Read bytes
 
@@ -984,6 +1004,8 @@ mod tests {
         )
     }
 
+    // fnt_def
+
     #[test]
     fn test_disassemble_fnt_def1() {
         let result = disassemble(vec![
@@ -1010,6 +1032,7 @@ mod tests {
             }
         )
     }
+
     #[test]
     fn test_disassemble_fnt_def2() {
         let result = disassemble(vec![
@@ -1036,6 +1059,7 @@ mod tests {
             }
         )
     }
+
     #[test]
     fn test_disassemble_fnt_def3() {
         let result = disassemble(vec![
@@ -1062,6 +1086,7 @@ mod tests {
             }
         )
     }
+
     #[test]
     fn test_disassemble_fnt_def4() {
         let result = disassemble(vec![
@@ -1085,6 +1110,33 @@ mod tests {
                 a: 0x2,
                 l: 0x3,
                 n: vec![1, 2, 3, 4, 5]
+            }
+        )
+    }
+
+    // Pre and post
+
+    #[test]
+    fn test_disassemble_pre() {
+        let result = disassemble(vec![
+            247, 
+            0x42, 
+            0xDE, 0xAD, 0xBE, 0xEF, 
+            0xCA, 0xFE, 0xBA, 0xBE, 
+            0xBA, 0xAA, 0xAA, 0xAD,
+            0x5,
+            0x1, 0x2, 0x3, 0x4, 0x5
+        ]);
+
+        assert_that_opcode_was_generated(
+            result, 
+            OpCode::Pre {
+                i: 0x42,
+                num: 0xDEADBEEF, 
+                den: 0xCAFEBABE, 
+                mag: 0xBAAAAAAD, 
+                k: 0x5, 
+                x: vec![1, 2, 3, 4, 5],
             }
         )
     }
