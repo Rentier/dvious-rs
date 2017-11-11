@@ -3,11 +3,15 @@ name = "dvious"
 version = "0.1.0"
 authors = ["Jan-Christoph Klie <gitkraken@jck.fastmail.com>"]
 
-[dependencies]
+[lib]
+name = "dvious"
+path = "src/lib.rs"
+
+[[bin]]
+name = "dvious"
+path = "src/main.rs"
 
 [dependencies.clap]
 version = "2.27"
 default-features = false
-
-# Cherry-pick the features you'd like to use
 features = [ "suggestions", "color", "wrap_help" ]

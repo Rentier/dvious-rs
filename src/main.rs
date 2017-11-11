@@ -7,9 +7,9 @@ use std::process;
 extern crate clap;
 use clap::{App, AppSettings, Arg, SubCommand};
 
-mod dvi;
-use dvi::disassembler::disassemble;
-use dvi::opcodes::OpCode;
+extern crate dvious;
+use dvious::dvi::disassembler::disassemble;
+use dvious::dvi::opcodes::OpCode;
 
 #[allow(unused_variables)]
 fn main() {
