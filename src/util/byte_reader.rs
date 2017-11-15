@@ -1,8 +1,15 @@
+use std::marker;
+use std::mem::size_of;
+
 use errors::{DviousError, DviousResult};
 
 pub struct ByteReader {
     position: usize,
     bytes: Vec<u8>,
+}
+
+pub trait Readable: marker::Sized {
+    fn from_u8_be(&[u8]) -> Self;
 }
 
 impl ByteReader {
@@ -13,9 +20,26 @@ impl ByteReader {
         }
     }
 
+    pub fn peek_be<T: Readable>(&self) -> DviousResult<T> {
+        let number_of_bytes = size_of::<T>();
+        let buffer = self.peek_slice(number_of_bytes)?;
+        let result = T::from_u8_be(buffer);
+        Ok(result)
+    }
+
+    pub fn read_be<T: Readable>(&mut self) -> DviousResult<T> {
+        let number_of_bytes = size_of::<T>();
+        let buffer = self.read_slice(number_of_bytes)?;
+        let result = T::from_u8_be(buffer);
+        Ok(result)
+    }
+
     fn peek_slice(&self, n: usize) -> Result<&[u8], DviousError> {
         let start = self.position;
         let end = self.position + n;
+
+        println!("Start: {}, End: {}, Len: {}", start, end, self.bytes.len());
+
 
         if end <= self.bytes.len() {
             let result = &self.bytes[start..end];
@@ -38,63 +62,27 @@ impl ByteReader {
         }
     }
 
-    // Peek unsigned
-
-    fn peek_u8_be(&self) -> DviousResult<u8> {
-        let b = self.peek_slice(1)?;
-        Ok(b[0])
-    }
-
-    fn peek_u16_be(&self) -> DviousResult<u16> {
-        let b = self.peek_slice(2)?;
-        let result = u16::from(b[0]) << 8 | u16::from(b[1]);
-        Ok(result)
-    }
-
-    fn peek_u32_be(&self) -> DviousResult<u32> {
-        let b = self.peek_slice(3)?;
-        let result = u32::from(b[0]) << 16 | u32::from(b[1]) << 8 | u32::from(b[2]);
-        Ok(result)
-    }
-
-    fn peek_u64_be(&self) -> DviousResult<u64> {
-        let b = self.peek_slice(4)?;
-        let result =
-            u64::from(b[0]) << 24 | u64::from(b[1]) << 16 | u64::from(b[2]) << 8 | u64::from(b[3]);
-        Ok(result)
-    }    
-
-    // Read unsigned
-
-    fn read_u8_be(&mut self) -> DviousResult<u8> {
-        let b = self.read_slice(1)?;
-        Ok(b[0])
-    }
-
-    fn read_u16_be(&mut self) -> DviousResult<u16> {
-        let b = self.read_slice(2)?;
-        let result = u16::from(b[0]) << 8 | u16::from(b[1]);
-        Ok(result)
-    }
-
-    fn read_u32_be(&mut self) -> DviousResult<u32> {
-        let b = self.read_slice(3)?;
-        let result = u32::from(b[0]) << 16 | u32::from(b[1]) << 8 | u32::from(b[2]);
-        Ok(result)
-    }
-
-    fn read_u64_be(&mut self) -> DviousResult<u64> {
-        let b = self.read_slice(4)?;
-        let result =
-            u64::from(b[0]) << 24 | u64::from(b[1]) << 16 | u64::from(b[2]) << 8 | u64::from(b[3]);
-        Ok(result)
-    }
-
     fn has_more(&self) -> bool {
         self.position < self.bytes.len()
     }
+}
 
-    // Read signed
+impl Readable for u8 {
+    fn from_u8_be(a: &[u8]) -> Self {
+        a[0]
+    }
+}
+
+impl Readable for u16 {
+    fn from_u8_be(b: &[u8]) -> Self {
+        u16::from(b[0]) << 8 | u16::from(b[1])
+    }
+}
+
+impl Readable for u32 {
+    fn from_u8_be(b: &[u8]) -> Self {
+        u32::from(b[0]) << 24 | u32::from(b[1]) << 16 | u32::from(b[2]) << 8 | u32::from(b[3])
+    }
 }
 
 #[cfg(test)]
@@ -105,42 +93,34 @@ mod tests {
 
     #[test]
     fn test_peek_u8_be() {
-        let mut reader = get_reader(vec![0x42]);
-        let result = reader.peek_u8_be().unwrap();
+        let reader = get_reader(vec![0x42]);
+        let result = reader.peek_be::<u8>().unwrap();
 
         assert_eq!(result, 0x42);
     }
 
     #[test]
     fn test_peek_u16_be() {
-        let mut reader = get_reader(vec![0xDE, 0xAD]);
-        let result = reader.peek_u16_be().unwrap();
+        let reader = get_reader(vec![0xDE, 0xAD]);
+        let result = reader.peek_be::<u16>().unwrap();
 
         assert_eq!(result, 0xDEAD);
     }
 
     #[test]
     fn test_peek_u32_be() {
-        let reader = get_reader(vec![0xDE, 0xAD, 0xBE]);
-        let result = reader.peek_u32_be().unwrap();
-
-        assert_eq!(result, 0xDEADBE);
-    }
-
-    #[test]
-    fn test_peek_u64_be() {
         let reader = get_reader(vec![0xDE, 0xAD, 0xBE, 0xEF]);
-        let result = reader.peek_u64_be().unwrap();
+        let result = reader.peek_be::<u32>().unwrap();
 
         assert_eq!(result, 0xDEADBEEF);
-    }    
+    }
 
     // Read unsigned
 
     #[test]
     fn test_read_u8_be() {
         let mut reader = get_reader(vec![0x42]);
-        let result = reader.read_u8_be().unwrap();
+        let result = reader.read_be::<u8>().unwrap();
 
         assert_eq!(result, 0x42);
     }
@@ -148,51 +128,39 @@ mod tests {
     #[test]
     fn test_read_u16_be() {
         let mut reader = get_reader(vec![0xDE, 0xAD]);
-        let result = reader.read_u16_be().unwrap();
+        let result = reader.read_be::<u16>().unwrap();
 
         assert_eq!(result, 0xDEAD);
     }
 
     #[test]
     fn test_read_u32_be() {
-        let mut reader = get_reader(vec![0xDE, 0xAD, 0xBE]);
-        let result = reader.read_u32_be().unwrap();
-
-        assert_eq!(result, 0xDEADBE);
-    }
-
-    #[test]
-    fn test_read_u64_be() {
         let mut reader = get_reader(vec![0xDE, 0xAD, 0xBE, 0xEF]);
-        let result = reader.read_u64_be().unwrap();
+        let result = reader.read_be::<u32>().unwrap();
 
         assert_eq!(result, 0xDEADBEEF);
     }
 
     #[test]
-    #[cfg_attr(rustfmt, rustfmt_skip)]
     fn test_read_several_be() {
-        let mut reader = get_reader(vec![0xAA, 0xBB, 0xBB, 0xCC, 0xCC, 0xCC, 0xDD, 0xDD, 0xDD, 0xDD]);
+        let mut reader = get_reader(vec![0xAA, 0xBB, 0xBB, 0xCC, 0xCC, 0xCC, 0xCC]);
 
         assert!(reader.has_more(), "Expected that reader has more");
-        assert_eq!(reader.read_u8_be().unwrap(), 0xAA);
+        assert_eq!(reader.read_be::<u8>().unwrap(), 0xAA);
 
         assert!(reader.has_more(), "Expected that reader has more");
-        assert_eq!(reader.read_u16_be().unwrap(), 0xBBBB);
+        assert_eq!(reader.read_be::<u16>().unwrap(), 0xBBBB);
 
         assert!(reader.has_more(), "Expected that reader has more");
-        assert_eq!(reader.read_u32_be().unwrap(), 0xCCCCCC);
-
-        assert!(reader.has_more(), "Expected that reader has more");
-        assert_eq!(reader.read_u64_be().unwrap(), 0xDDDDDDDD);
+        assert_eq!(reader.read_be::<u32>().unwrap(), 0xCCCCCCCC);
 
         assert!(!reader.has_more(), "Expected that reader has no more");
-        assert!(reader.read_u64_be().is_err(), "Expected that 'e' is Err");
+        assert!(reader.read_be::<u32>().is_err(), "Expected that 'e' is Err");
     }
 
     #[test]
     fn test_has_more() {
-        let mut reader = get_reader(vec![0xDE, 0xAD]);
+        let reader = get_reader(vec![0xDE, 0xAD]);
 
         assert!(reader.has_more(), "Expected that reader has more");
     }
@@ -200,7 +168,7 @@ mod tests {
     #[test]
     fn test_has_no_more() {
         let mut reader = get_reader(vec![0xDE, 0xAD]);
-        reader.read_u16_be();
+        reader.read_be::<u16>().unwrap();
 
         assert!(!reader.has_more(), "Expected that reader has no more");
     }
