@@ -1,7 +1,7 @@
 [package]
 name = "dvious"
 version = "0.1.0"
-authors = ["Jan-Christoph Klie <gitkraken@jck.fastmail.com>"]
+authors = ["Jan-Christoph Klie <git@jck.fastmail.com>"]
 
 [lib]
 name = "dvious"
