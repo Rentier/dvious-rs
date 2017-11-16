@@ -72,6 +72,10 @@ impl ByteReader {
     pub fn has_more(&self) -> bool {
         self.position < self.bytes.len()
     }
+
+    pub fn len(&self) -> usize {
+        self.bytes.len()
+    }
 }
 
 // Unsigned
@@ -352,6 +356,15 @@ mod tests {
         reader.read_be::<u16>().unwrap();
 
         assert!(!reader.has_more(), "Expected that reader has no more");
+    }
+
+    // Len
+
+    #[test]
+    fn test_len() {
+        let reader = get_reader(vec![0xDE, 0xAD]);
+
+        assert_eq!(reader.len(), 2_usize);
     }
 
     fn get_reader(bytes: Vec<u8>) -> ByteReader {
