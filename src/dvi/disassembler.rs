@@ -121,7 +121,6 @@ impl Disassembler {
     fn handle_set2(&mut self) -> DviousResult<OpCode> {
         let c = self.reader.read_be::<u16>()?;
         self.handle_set_char(c)
-
     }
 
     fn handle_set3(&mut self) -> DviousResult<OpCode> {
@@ -144,9 +143,7 @@ impl Disassembler {
     // Put
 
     fn handle_put<T: Into<i32>>(&mut self, c: T) -> DviousResult<OpCode> {
-        Ok(OpCode::Put {
-            c: c.into(),
-        })
+        Ok(OpCode::Put { c: c.into() })
     }
 
     fn handle_put1(&mut self) -> DviousResult<OpCode> {
@@ -213,11 +210,9 @@ impl Disassembler {
     // Right
 
     fn handle_right<T: Into<i32>>(&mut self, b: T) -> DviousResult<OpCode> {
-        Ok(OpCode::Right {
-            b: b.into(),
-        })
+        Ok(OpCode::Right { b: b.into() })
     }
-    
+
     fn handle_right1(&mut self) -> DviousResult<OpCode> {
         let b = self.reader.read_be::<i8>()?;
         self.handle_right(b)
@@ -241,14 +236,12 @@ impl Disassembler {
     // W
 
     fn handle_w<T: Into<i32>>(&mut self, b: T) -> DviousResult<OpCode> {
-        Ok(OpCode::W {
-            b: b.into(),
-        })
+        Ok(OpCode::W { b: b.into() })
     }
 
     fn handle_w0(&mut self) -> DviousResult<OpCode> {
         Ok(OpCode::W0)
-    }    
+    }
 
     fn handle_w1(&mut self) -> DviousResult<OpCode> {
         let b = self.reader.read_be::<i8>()?;
@@ -273,14 +266,12 @@ impl Disassembler {
     // X
 
     fn handle_x<T: Into<i32>>(&mut self, b: T) -> DviousResult<OpCode> {
-        Ok(OpCode::X {
-            b: b.into(),
-        })
+        Ok(OpCode::X { b: b.into() })
     }
 
     fn handle_x0(&mut self) -> DviousResult<OpCode> {
         Ok(OpCode::X0)
-    }    
+    }
 
     fn handle_x1(&mut self) -> DviousResult<OpCode> {
         let b = self.reader.read_be::<i8>()?;
@@ -305,9 +296,7 @@ impl Disassembler {
     // Down
 
     fn handle_down<T: Into<i32>>(&mut self, a: T) -> DviousResult<OpCode> {
-        Ok(OpCode::Down {
-            a: a.into(),
-        })
+        Ok(OpCode::Down { a: a.into() })
     }
 
     fn handle_down1(&mut self) -> DviousResult<OpCode> {
@@ -333,14 +322,12 @@ impl Disassembler {
     // Y
 
     fn handle_y<T: Into<i32>>(&mut self, a: T) -> DviousResult<OpCode> {
-        Ok(OpCode::Y {
-            a: a.into(),
-        })
+        Ok(OpCode::Y { a: a.into() })
     }
 
     fn handle_y0(&mut self) -> DviousResult<OpCode> {
         Ok(OpCode::Y0)
-    }    
+    }
 
     fn handle_y1(&mut self) -> DviousResult<OpCode> {
         let a = self.reader.read_be::<i8>()?;
@@ -365,9 +352,7 @@ impl Disassembler {
     // Z
 
     fn handle_z<T: Into<i32>>(&mut self, a: T) -> DviousResult<OpCode> {
-        Ok(OpCode::Z {
-            a: a.into(),
-        })
+        Ok(OpCode::Z { a: a.into() })
     }
 
     fn handle_z0(&mut self) -> DviousResult<OpCode> {
@@ -429,10 +414,7 @@ impl Disassembler {
     fn handle_xxx<T: Into<u32>>(&mut self, n: T) -> DviousResult<OpCode> {
         let k = n.into();
         let x = self.reader.read_vector_be::<u8>(k as usize)?;
-        Ok(OpCode::Xxx {
-            k: k,
-            x: x
-        })
+        Ok(OpCode::Xxx { k: k, x: x })
     }
 
     fn handle_xxx1(&mut self) -> DviousResult<OpCode> {
@@ -448,23 +430,23 @@ impl Disassembler {
     fn handle_xxx3(&mut self) -> DviousResult<OpCode> {
         let k = self.reader.read_be::<u24>()?;
         self.handle_xxx(k)
-    }        
+    }
 
     fn handle_xxx4(&mut self) -> DviousResult<OpCode> {
         let k = self.reader.read_be::<u32>()?;
         self.handle_xxx(k)
     }
-    
+
     // fnt_def
 
     fn handle_fnt_def<T: Into<i32>>(&mut self, k: T) -> DviousResult<OpCode> {
-        let c = self.reader.read_be::<u32>()?; 
-        let s = self.reader.read_be::<u32>()?; 
-        let d = self.reader.read_be::<u32>()?; 
+        let c = self.reader.read_be::<u32>()?;
+        let s = self.reader.read_be::<u32>()?;
+        let d = self.reader.read_be::<u32>()?;
         let a = self.reader.read_be::<u8>()?;
         let l = self.reader.read_be::<u8>()?;
         let n = self.reader.read_vector_be::<u8>(usize::from(a + l))?;
-    
+
         Ok(OpCode::FntDef {
             k: k.into(),
             c: c,
@@ -504,13 +486,13 @@ impl Disassembler {
         let den = self.reader.read_be::<u32>()?;
         let mag = self.reader.read_be::<u32>()?;
         let k = self.reader.read_be::<u8>()?;
-    
+
         Ok(OpCode::Pre {
             i: i,
-            num: num, 
-            den: den, 
-            mag: mag, 
-            k: k, 
+            num: num,
+            den: den,
+            mag: mag,
+            k: k,
             x: self.reader.read_vector_be::<u8>(k as usize)?,
         })
     }
@@ -519,15 +501,15 @@ impl Disassembler {
         self.reader.read_be::<i32>()?;
         self.last_post = Option::Some(self.number_of_instructions);
 
-        Ok(OpCode::Post { 
+        Ok(OpCode::Post {
             p: self.last_bop,
             num: self.reader.read_be::<u32>()?,
             den: self.reader.read_be::<u32>()?,
             mag: self.reader.read_be::<u32>()?,
-            l : self.reader.read_be::<u32>()?,
-            u : self.reader.read_be::<u32>()?,
-            s : self.reader.read_be::<u16>()?,
-            t : self.reader.read_be::<u16>()?,
+            l: self.reader.read_be::<u32>()?,
+            u: self.reader.read_be::<u32>()?,
+            s: self.reader.read_be::<u16>()?,
+            t: self.reader.read_be::<u16>()?,
         })
     }
 
@@ -535,16 +517,16 @@ impl Disassembler {
         // Consume unused pointer to post command
         self.reader.read_be::<i32>()?;
 
-        let result = OpCode::PostPost { 
+        let result = OpCode::PostPost {
             q: self.last_post,
-            i: self.reader.read_be::<u8>()?
+            i: self.reader.read_be::<u8>()?,
         };
 
         // Consume padding
         while self.reader.has_more() && self.reader.peek_be::<u8>()? == 223 {
             self.reader.read_be::<u8>()?;
-        };
-        
+        }
+
         Ok(result)
     }
 }
