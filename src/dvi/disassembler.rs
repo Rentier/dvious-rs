@@ -1,13 +1,15 @@
 use dvi::opcodes::OpCode;
+use errors::{DviousError, DviousResult};
+use util::byte_reader::ByteReader;
+use util::num::{i24, u24};
 
-pub fn disassemble(bytes: Vec<u8>) -> Result<Vec<OpCode>, String> {
+pub fn disassemble(bytes: Vec<u8>) -> DviousResult<Vec<OpCode>> {
     let mut disassembler = Disassembler::new(bytes);
     disassembler.disassemble()
 }
 
 struct Disassembler {
-    bytes: Vec<u8>,
-    position: usize,
+    reader: ByteReader,
     last_bop: Option<usize>,
     last_post: Option<usize>,
     number_of_instructions: usize,
@@ -16,94 +18,89 @@ struct Disassembler {
 impl Disassembler {
     fn new(bytes: Vec<u8>) -> Disassembler {
         Disassembler {
-            bytes: bytes,
-            position: 0,
+            reader: ByteReader::new(bytes),
             last_bop: Option::None,
             last_post: Option::None,
             number_of_instructions: 0,
         }
     }
 
-    fn disassemble(&mut self) -> Result<Vec<OpCode>, String> {
+    fn disassemble(&mut self) -> DviousResult<Vec<OpCode>> {
         let mut opcodes = Vec::new();
-        self.position = 0;
         self.last_bop = Option::None;
 
-        while self.has_more() {
-            let opcode = match self.disassemble_next() {
-                Err(why) => return Err(why),
-                Ok(opcode) => opcode
-            };
+        while self.reader.has_more() {
+            let opcode = self.disassemble_next()?;
             opcodes.push(opcode);
         }
 
         Ok(opcodes)
     }
 
-    fn disassemble_next(&mut self) -> Result<OpCode, String> {
-        let byte = self.consume_one_byte_as_scalar() as u8;
+    fn disassemble_next(&mut self) -> DviousResult<OpCode> {
+        let byte = self.reader.read_be::<u8>()?;
         let opcode = match byte {
-            0...127 => self.handle_set_char(byte),
-            128 => self.handle_set1(),
-            129 => self.handle_set2(),
-            130 => self.handle_set3(),
-            131 => self.handle_set4(),
-            132 => self.handle_set_rule(),
-            133 => self.handle_put1(),
-            134 => self.handle_put2(),
-            135 => self.handle_put3(),
-            136 => self.handle_put4(),
-            137 => self.handle_put_rule(),
-            138 => self.handle_nop(),
-            139 => self.handle_bop(),
-            140 => self.handle_eop(),
-            141 => self.handle_push(),
-            142 => self.handle_pop(),
-            143 => self.handle_right1(),
-            144 => self.handle_right2(),
-            145 => self.handle_right3(),
-            146 => self.handle_right4(),
-            147 => self.handle_w0(),
-            148 => self.handle_w1(),
-            149 => self.handle_w2(),
-            150 => self.handle_w3(),
-            151 => self.handle_w4(),
-            152 => self.handle_x0(),
-            153 => self.handle_x1(),
-            154 => self.handle_x2(),
-            155 => self.handle_x3(),
-            156 => self.handle_x4(),
-            157 => self.handle_down1(),
-            158 => self.handle_down2(),
-            159 => self.handle_down3(),
-            160 => self.handle_down4(),
-            161 => self.handle_y0(),
-            162 => self.handle_y1(),
-            163 => self.handle_y2(),
-            164 => self.handle_y3(),
-            165 => self.handle_y4(),
-            166 => self.handle_z0(),
-            167 => self.handle_z1(),
-            168 => self.handle_z2(),
-            169 => self.handle_z3(),
-            170 => self.handle_z4(),
-            171...234 => self.handle_fnt_num(byte),
-            235 => self.handle_fnt1(),
-            236 => self.handle_fnt2(),
-            237 => self.handle_fnt3(),
-            238 => self.handle_fnt4(),
-            239 => self.handle_xxx1(),
-            240 => self.handle_xxx2(),
-            241 => self.handle_xxx3(),
-            242 => self.handle_xxx4(),
-            243 => self.handle_fnt_def1(),
-            244 => self.handle_fnt_def2(),
-            245 => self.handle_fnt_def3(),
-            246 => self.handle_fnt_def4(),
-            247 => self.handle_pre(),
-            248 => self.handle_post(),
-            249 => self.handle_post_post(),
-            _ => return Err(format!("Unknown opcode: {}", byte)),
+            0...127 => self.handle_set_char(i32::from(byte))?,
+            128 => self.handle_set1()?,
+            129 => self.handle_set2()?,
+            130 => self.handle_set3()?,
+            131 => self.handle_set4()?,
+            132 => self.handle_set_rule()?,
+            133 => self.handle_put1()?,
+            134 => self.handle_put2()?,
+            135 => self.handle_put3()?,
+            136 => self.handle_put4()?,
+            137 => self.handle_put_rule()?,
+            138 => self.handle_nop()?,
+            139 => self.handle_bop()?,
+            140 => self.handle_eop()?,
+            141 => self.handle_push()?,
+            142 => self.handle_pop()?,
+            143 => self.handle_right1()?,
+            144 => self.handle_right2()?,
+            145 => self.handle_right3()?,
+            146 => self.handle_right4()?,
+            147 => self.handle_w0()?,
+            148 => self.handle_w1()?,
+            149 => self.handle_w2()?,
+            150 => self.handle_w3()?,
+            151 => self.handle_w4()?,
+            152 => self.handle_x0()?,
+            153 => self.handle_x1()?,
+            154 => self.handle_x2()?,
+            155 => self.handle_x3()?,
+            156 => self.handle_x4()?,
+            157 => self.handle_down1()?,
+            158 => self.handle_down2()?,
+            159 => self.handle_down3()?,
+            160 => self.handle_down4()?,
+            161 => self.handle_y0()?,
+            162 => self.handle_y1()?,
+            163 => self.handle_y2()?,
+            164 => self.handle_y3()?,
+            165 => self.handle_y4()?,
+            166 => self.handle_z0()?,
+            167 => self.handle_z1()?,
+            168 => self.handle_z2()?,
+            169 => self.handle_z3()?,
+            170 => self.handle_z4()?,
+            171...234 => self.handle_fnt_num(byte)?,
+            235 => self.handle_fnt1()?,
+            236 => self.handle_fnt2()?,
+            237 => self.handle_fnt3()?,
+            238 => self.handle_fnt4()?,
+            239 => self.handle_xxx1()?,
+            240 => self.handle_xxx2()?,
+            241 => self.handle_xxx3()?,
+            242 => self.handle_xxx4()?,
+            243 => self.handle_fnt_def1()?,
+            244 => self.handle_fnt_def2()?,
+            245 => self.handle_fnt_def3()?,
+            246 => self.handle_fnt_def4()?,
+            247 => self.handle_pre()?,
+            248 => self.handle_post()?,
+            249 => self.handle_post_post()?,
+            _ => return Err(DviousError::UnknownOpcodeError(byte)),
         };
 
         self.number_of_instructions += 1;
@@ -112,481 +109,443 @@ impl Disassembler {
 
     // Set
 
-    fn handle_set_char(&mut self, byte: u8) -> OpCode {
-        OpCode::SetChar { c: byte as u32}
+    fn handle_set_char<T: Into<i32>>(&mut self, byte: T) -> DviousResult<OpCode> {
+        Ok(OpCode::Set { c: byte.into() })
     }
 
-    fn handle_set1(&mut self) -> OpCode {
-        OpCode::Set {
-            c: self.consume_one_byte_as_scalar() as i32,
-        }
+    fn handle_set1(&mut self) -> DviousResult<OpCode> {
+        let c = self.reader.read_be::<u8>()?;
+        self.handle_set_char(c)
     }
 
-    fn handle_set2(&mut self) -> OpCode {
-        OpCode::Set {
-            c: self.consume_two_bytes_as_scalar() as i32,
-        }
+    fn handle_set2(&mut self) -> DviousResult<OpCode> {
+        let c = self.reader.read_be::<u16>()?;
+        self.handle_set_char(c)
+
     }
 
-    fn handle_set3(&mut self) -> OpCode {
-        OpCode::Set {
-            c: self.consume_three_bytes_as_scalar() as i32,
-        }
+    fn handle_set3(&mut self) -> DviousResult<OpCode> {
+        let c = self.reader.read_be::<u24>()?;
+        self.handle_set_char(c)
     }
 
-    fn handle_set4(&mut self) -> OpCode {
-        OpCode::Set {
-            c: self.consume_four_bytes_as_scalar(),
-        }
+    fn handle_set4(&mut self) -> DviousResult<OpCode> {
+        let c = self.reader.read_be::<i32>()?;
+        self.handle_set_char(c)
     }
 
-    fn handle_set_rule(&mut self) -> OpCode {
-        OpCode::SetRule {
-            a: self.consume_four_bytes_as_scalar(),
-            b: self.consume_four_bytes_as_scalar(),
-        }
+    fn handle_set_rule(&mut self) -> DviousResult<OpCode> {
+        Ok(OpCode::SetRule {
+            a: self.reader.read_be::<i32>()?,
+            b: self.reader.read_be::<i32>()?,
+        })
     }
 
     // Put
 
-    fn handle_put1(&mut self) -> OpCode {
-        OpCode::Put {
-            c: self.consume_one_byte_as_scalar() as i32,
-        }
+    fn handle_put<T: Into<i32>>(&mut self, c: T) -> DviousResult<OpCode> {
+        Ok(OpCode::Put {
+            c: c.into(),
+        })
     }
 
-    fn handle_put2(&mut self) -> OpCode {
-        OpCode::Put {
-            c: self.consume_two_bytes_as_scalar() as i32,
-        }
+    fn handle_put1(&mut self) -> DviousResult<OpCode> {
+        let c = self.reader.read_be::<u8>()?;
+        self.handle_put(c)
     }
 
-    fn handle_put3(&mut self) -> OpCode {
-        OpCode::Put {
-            c: self.consume_three_bytes_as_scalar() as i32,
-        }
+    fn handle_put2(&mut self) -> DviousResult<OpCode> {
+        let c = self.reader.read_be::<u16>()?;
+        self.handle_put(c)
     }
 
-    fn handle_put4(&mut self) -> OpCode {
-        OpCode::Put {
-            c: self.consume_four_bytes_as_scalar() as i32,
-        }
+    fn handle_put3(&mut self) -> DviousResult<OpCode> {
+        let c = self.reader.read_be::<u24>()?;
+        self.handle_put(c)
     }
 
-    fn handle_put_rule(&mut self) -> OpCode {
-        OpCode::PutRule {
-            a: self.consume_four_bytes_as_scalar(),
-            b: self.consume_four_bytes_as_scalar(),
-        }
+    fn handle_put4(&mut self) -> DviousResult<OpCode> {
+        let c = self.reader.read_be::<i32>()?;
+        self.handle_put(c)
     }
 
-    fn handle_nop(&mut self) -> OpCode {
-        OpCode::Nop
+    fn handle_put_rule(&mut self) -> DviousResult<OpCode> {
+        Ok(OpCode::PutRule {
+            a: self.reader.read_be::<i32>()?,
+            b: self.reader.read_be::<i32>()?,
+        })
     }
 
-    fn handle_bop(&mut self) -> OpCode {
+    fn handle_nop(&mut self) -> DviousResult<OpCode> {
+        Ok(OpCode::Nop)
+    }
+
+    fn handle_bop(&mut self) -> DviousResult<OpCode> {
         self.last_bop = Some(self.number_of_instructions);
 
-        OpCode::Bop {
-            c0: self.consume_four_bytes_as_scalar(),
-            c1: self.consume_four_bytes_as_scalar(),
-            c2: self.consume_four_bytes_as_scalar(),
-            c3: self.consume_four_bytes_as_scalar(),
-            c4: self.consume_four_bytes_as_scalar(),
-            c5: self.consume_four_bytes_as_scalar(),
-            c6: self.consume_four_bytes_as_scalar(),
-            c7: self.consume_four_bytes_as_scalar(),
-            c8: self.consume_four_bytes_as_scalar(),
-            c9: self.consume_four_bytes_as_scalar(),
-            p: self.consume_four_bytes_as_scalar(),
-        }
+        Ok(OpCode::Bop {
+            c0: self.reader.read_be::<i32>()?,
+            c1: self.reader.read_be::<i32>()?,
+            c2: self.reader.read_be::<i32>()?,
+            c3: self.reader.read_be::<i32>()?,
+            c4: self.reader.read_be::<i32>()?,
+            c5: self.reader.read_be::<i32>()?,
+            c6: self.reader.read_be::<i32>()?,
+            c7: self.reader.read_be::<i32>()?,
+            c8: self.reader.read_be::<i32>()?,
+            c9: self.reader.read_be::<i32>()?,
+            p: self.reader.read_be::<i32>()?,
+        })
     }
 
-    fn handle_eop(&mut self) -> OpCode {
-        OpCode::Eop
+    fn handle_eop(&mut self) -> DviousResult<OpCode> {
+        Ok(OpCode::Eop)
     }
 
-    fn handle_push(&mut self) -> OpCode {
-        OpCode::Push
+    fn handle_push(&mut self) -> DviousResult<OpCode> {
+        Ok(OpCode::Push)
     }
 
-    fn handle_pop(&mut self) -> OpCode {
-        OpCode::Pop
+    fn handle_pop(&mut self) -> DviousResult<OpCode> {
+        Ok(OpCode::Pop)
     }
 
     // Right
+
+    fn handle_right<T: Into<i32>>(&mut self, b: T) -> DviousResult<OpCode> {
+        Ok(OpCode::Right {
+            b: b.into(),
+        })
+    }
     
-    fn handle_right1(&mut self) -> OpCode {
-        OpCode::Right {
-            b: self.consume_one_byte_as_scalar() as i32,
-        }
+    fn handle_right1(&mut self) -> DviousResult<OpCode> {
+        let b = self.reader.read_be::<i8>()?;
+        self.handle_right(b)
     }
 
-    fn handle_right2(&mut self) -> OpCode {
-        OpCode::Right {
-            b: self.consume_two_bytes_as_scalar() as i32,
-        }
+    fn handle_right2(&mut self) -> DviousResult<OpCode> {
+        let b = self.reader.read_be::<i16>()?;
+        self.handle_right(b)
     }
 
-    fn handle_right3(&mut self) -> OpCode {
-        OpCode::Right {
-            b: self.consume_three_bytes_as_scalar() as i32,
-        }
+    fn handle_right3(&mut self) -> DviousResult<OpCode> {
+        let b = self.reader.read_be::<i24>()?;
+        self.handle_right(b)
     }
 
-    fn handle_right4(&mut self) -> OpCode {
-        OpCode::Right {
-            b: self.consume_four_bytes_as_scalar(),
-        }
+    fn handle_right4(&mut self) -> DviousResult<OpCode> {
+        let b = self.reader.read_be::<i32>()?;
+        self.handle_right(b)
     }
 
     // W
 
-    fn handle_w0(&mut self) -> OpCode {
-        OpCode::W0
+    fn handle_w<T: Into<i32>>(&mut self, b: T) -> DviousResult<OpCode> {
+        Ok(OpCode::W {
+            b: b.into(),
+        })
+    }
+
+    fn handle_w0(&mut self) -> DviousResult<OpCode> {
+        Ok(OpCode::W0)
     }    
 
-    fn handle_w1(&mut self) -> OpCode {
-        OpCode::W {
-            b: self.consume_one_byte_as_scalar() as i32,
-        }
+    fn handle_w1(&mut self) -> DviousResult<OpCode> {
+        let b = self.reader.read_be::<i8>()?;
+        self.handle_w(b)
     }
 
-    fn handle_w2(&mut self) -> OpCode {
-        OpCode::W {
-            b: self.consume_two_bytes_as_scalar() as i32,
-        }
+    fn handle_w2(&mut self) -> DviousResult<OpCode> {
+        let b = self.reader.read_be::<i16>()?;
+        self.handle_w(b)
     }
 
-    fn handle_w3(&mut self) -> OpCode {
-        OpCode::W {
-            b: self.consume_three_bytes_as_scalar() as i32,
-        }
+    fn handle_w3(&mut self) -> DviousResult<OpCode> {
+        let b = self.reader.read_be::<i24>()?;
+        self.handle_w(b)
     }
 
-    fn handle_w4(&mut self) -> OpCode {
-        OpCode::W {
-            b: self.consume_four_bytes_as_scalar(),
-        }
-    }        
+    fn handle_w4(&mut self) -> DviousResult<OpCode> {
+        let b = self.reader.read_be::<i32>()?;
+        self.handle_w(b)
+    }
 
     // X
 
-    fn handle_x0(&mut self) -> OpCode {
-        OpCode::X0
+    fn handle_x<T: Into<i32>>(&mut self, b: T) -> DviousResult<OpCode> {
+        Ok(OpCode::X {
+            b: b.into(),
+        })
+    }
+
+    fn handle_x0(&mut self) -> DviousResult<OpCode> {
+        Ok(OpCode::X0)
     }    
 
-    fn handle_x1(&mut self) -> OpCode {
-        OpCode::X {
-            b: self.consume_one_byte_as_scalar() as i32,
-        }
+    fn handle_x1(&mut self) -> DviousResult<OpCode> {
+        let b = self.reader.read_be::<i8>()?;
+        self.handle_x(b)
     }
 
-    fn handle_x2(&mut self) -> OpCode {
-        OpCode::X {
-            b: self.consume_two_bytes_as_scalar() as i32,
-        }
+    fn handle_x2(&mut self) -> DviousResult<OpCode> {
+        let b = self.reader.read_be::<i16>()?;
+        self.handle_x(b)
     }
 
-    fn handle_x3(&mut self) -> OpCode {
-        OpCode::X {
-            b: self.consume_three_bytes_as_scalar() as i32,
-        }
+    fn handle_x3(&mut self) -> DviousResult<OpCode> {
+        let b = self.reader.read_be::<i24>()?;
+        self.handle_x(b)
     }
 
-    fn handle_x4(&mut self) -> OpCode {
-        OpCode::X {
-            b: self.consume_four_bytes_as_scalar(),
-        }
+    fn handle_x4(&mut self) -> DviousResult<OpCode> {
+        let b = self.reader.read_be::<i32>()?;
+        self.handle_x(b)
     }
 
     // Down
 
-    fn handle_down1(&mut self) -> OpCode {
-        OpCode::Down {
-            a: self.consume_one_byte_as_scalar() as i32,
-        }
+    fn handle_down<T: Into<i32>>(&mut self, a: T) -> DviousResult<OpCode> {
+        Ok(OpCode::Down {
+            a: a.into(),
+        })
     }
 
-    fn handle_down2(&mut self) -> OpCode {
-        OpCode::Down {
-            a: self.consume_two_bytes_as_scalar() as i32,
-        }
+    fn handle_down1(&mut self) -> DviousResult<OpCode> {
+        let a = self.reader.read_be::<i8>()?;
+        self.handle_down(a)
     }
 
-    fn handle_down3(&mut self) -> OpCode {
-        OpCode::Down {
-            a: self.consume_three_bytes_as_scalar() as i32,
-        }
+    fn handle_down2(&mut self) -> DviousResult<OpCode> {
+        let a = self.reader.read_be::<i16>()?;
+        self.handle_down(a)
     }
 
-    fn handle_down4(&mut self) -> OpCode {
-        OpCode::Down {
-            a: self.consume_four_bytes_as_scalar(),
-        }
+    fn handle_down3(&mut self) -> DviousResult<OpCode> {
+        let a = self.reader.read_be::<i24>()?;
+        self.handle_down(a)
+    }
+
+    fn handle_down4(&mut self) -> DviousResult<OpCode> {
+        let a = self.reader.read_be::<i32>()?;
+        self.handle_down(a)
     }
 
     // Y
 
-    fn handle_y0(&mut self) -> OpCode {
-        OpCode::Y0
+    fn handle_y<T: Into<i32>>(&mut self, a: T) -> DviousResult<OpCode> {
+        Ok(OpCode::Y {
+            a: a.into(),
+        })
+    }
+
+    fn handle_y0(&mut self) -> DviousResult<OpCode> {
+        Ok(OpCode::Y0)
     }    
 
-    fn handle_y1(&mut self) -> OpCode {
-        OpCode::Y {
-            a: self.consume_one_byte_as_scalar() as i32,
-        }
+    fn handle_y1(&mut self) -> DviousResult<OpCode> {
+        let a = self.reader.read_be::<i8>()?;
+        self.handle_y(a)
     }
 
-    fn handle_y2(&mut self) -> OpCode {
-        OpCode::Y {
-            a: self.consume_two_bytes_as_scalar() as i32,
-        }
+    fn handle_y2(&mut self) -> DviousResult<OpCode> {
+        let a = self.reader.read_be::<i16>()?;
+        self.handle_y(a)
     }
 
-    fn handle_y3(&mut self) -> OpCode {
-        OpCode::Y {
-            a: self.consume_three_bytes_as_scalar() as i32,
-        }
+    fn handle_y3(&mut self) -> DviousResult<OpCode> {
+        let a = self.reader.read_be::<i24>()?;
+        self.handle_y(a)
     }
 
-    fn handle_y4(&mut self) -> OpCode {
-        OpCode::Y {
-            a: self.consume_four_bytes_as_scalar(),
-        }
+    fn handle_y4(&mut self) -> DviousResult<OpCode> {
+        let a = self.reader.read_be::<i32>()?;
+        self.handle_y(a)
     }
 
-    // Y
+    // Z
 
-    fn handle_z0(&mut self) -> OpCode {
-        OpCode::Z0
+    fn handle_z<T: Into<i32>>(&mut self, a: T) -> DviousResult<OpCode> {
+        Ok(OpCode::Z {
+            a: a.into(),
+        })
     }
 
-    fn handle_z1(&mut self) -> OpCode {
-        OpCode::Z {
-            a: self.consume_one_byte_as_scalar() as i32,
-        }
+    fn handle_z0(&mut self) -> DviousResult<OpCode> {
+        Ok(OpCode::Z0)
     }
 
-    fn handle_z2(&mut self) -> OpCode {
-        OpCode::Z {
-            a: self.consume_two_bytes_as_scalar() as i32,
-        }
+    fn handle_z1(&mut self) -> DviousResult<OpCode> {
+        let a = self.reader.read_be::<i8>()?;
+        self.handle_z(a)
     }
 
-    fn handle_z3(&mut self) -> OpCode {
-        OpCode::Z {
-            a: self.consume_three_bytes_as_scalar() as i32,
-        }
+    fn handle_z2(&mut self) -> DviousResult<OpCode> {
+        let a = self.reader.read_be::<i16>()?;
+        self.handle_z(a)
     }
 
-    fn handle_z4(&mut self) -> OpCode {
-        OpCode::Z {
-            a: self.consume_four_bytes_as_scalar(),
-        }
+    fn handle_z3(&mut self) -> DviousResult<OpCode> {
+        let a = self.reader.read_be::<i24>()?;
+        self.handle_z(a)
+    }
+
+    fn handle_z4(&mut self) -> DviousResult<OpCode> {
+        let a = self.reader.read_be::<i32>()?;
+        self.handle_z(a)
     }
 
     // Fonts
 
-    fn handle_fnt_num(&mut self, byte: u8) -> OpCode {
-        OpCode::FntNum { k: byte as u32}
+    fn handle_fnt<T: Into<i32>>(&mut self, k: T) -> DviousResult<OpCode> {
+        Ok(OpCode::Fnt { k: k.into() })
     }
 
-    fn handle_fnt1(&mut self) -> OpCode {
-        OpCode::Fnt {
-            k: self.consume_one_byte_as_scalar() as i32,
-        }
+    fn handle_fnt_num(&mut self, byte: u8) -> DviousResult<OpCode> {
+        self.handle_fnt(byte)
     }
 
-    fn handle_fnt2(&mut self) -> OpCode {
-        OpCode::Fnt {
-            k: self.consume_two_bytes_as_scalar() as i32,
-        }
+    fn handle_fnt1(&mut self) -> DviousResult<OpCode> {
+        let k = self.reader.read_be::<u8>()?;
+        self.handle_fnt(k)
     }
 
-    fn handle_fnt3(&mut self) -> OpCode {
-        OpCode::Fnt {
-            k: self.consume_three_bytes_as_scalar() as i32,
-        }
+    fn handle_fnt2(&mut self) -> DviousResult<OpCode> {
+        let k = self.reader.read_be::<u16>()?;
+        self.handle_fnt(k)
     }
 
-    fn handle_fnt4(&mut self) -> OpCode {
-        OpCode::Fnt {
-            k: self.consume_four_bytes_as_scalar(),
-        }
+    fn handle_fnt3(&mut self) -> DviousResult<OpCode> {
+        let k = self.reader.read_be::<u24>()?;
+        self.handle_fnt(k)
+    }
+
+    fn handle_fnt4(&mut self) -> DviousResult<OpCode> {
+        let k = self.reader.read_be::<i32>()?;
+        self.handle_fnt(k)
     }
 
     // Xxx
 
-    fn handle_xxx1(&mut self) -> OpCode {
-        let k = self.consume_one_byte_as_scalar() as i32;
-        OpCode::Xxx {
+    fn handle_xxx<T: Into<u32>>(&mut self, n: T) -> DviousResult<OpCode> {
+        let k = n.into();
+        let x = self.reader.read_vector_be::<u8>(k as usize)?;
+        Ok(OpCode::Xxx {
             k: k,
-            x: self.consume_n_bytes_as_vec(k as u32)
-        }
+            x: x
+        })
     }
 
-    fn handle_xxx2(&mut self) -> OpCode {
-        let k = self.consume_two_bytes_as_scalar() as i32;
-        OpCode::Xxx {
-            k: k,
-            x: self.consume_n_bytes_as_vec(k as u32)
-        }
+    fn handle_xxx1(&mut self) -> DviousResult<OpCode> {
+        let k = self.reader.read_be::<u8>()?;
+        self.handle_xxx(k)
     }
 
-    fn handle_xxx3(&mut self) -> OpCode {
-        let k = self.consume_three_bytes_as_scalar() as i32;
-        OpCode::Xxx {
-            k: k,
-            x: self.consume_n_bytes_as_vec(k as u32)
-        }
+    fn handle_xxx2(&mut self) -> DviousResult<OpCode> {
+        let k = self.reader.read_be::<u16>()?;
+        self.handle_xxx(k)
+    }
+
+    fn handle_xxx3(&mut self) -> DviousResult<OpCode> {
+        let k = self.reader.read_be::<u24>()?;
+        self.handle_xxx(k)
     }        
 
-    fn handle_xxx4(&mut self) -> OpCode {
-        let k = self.consume_four_bytes_as_scalar()  as i32;
-        OpCode::Xxx {
-            k: k,
-            x: self.consume_n_bytes_as_vec(k as u32)
-        }
+    fn handle_xxx4(&mut self) -> DviousResult<OpCode> {
+        let k = self.reader.read_be::<u32>()?;
+        self.handle_xxx(k)
     }
     
     // fnt_def
 
-    fn handle_fnt_def1(&mut self) -> OpCode {
-        let k = self.consume_one_byte_as_scalar();
-        self.handle_fnt_def(k as i32)
+    fn handle_fnt_def<T: Into<i32>>(&mut self, k: T) -> DviousResult<OpCode> {
+        let c = self.reader.read_be::<u32>()?; 
+        let s = self.reader.read_be::<u32>()?; 
+        let d = self.reader.read_be::<u32>()?; 
+        let a = self.reader.read_be::<u8>()?;
+        let l = self.reader.read_be::<u8>()?;
+        let n = self.reader.read_vector_be::<u8>(usize::from(a + l))?;
+    
+        Ok(OpCode::FntDef {
+            k: k.into(),
+            c: c,
+            s: s,
+            d: d,
+            a: a,
+            l: l,
+            n: n,
+        })
     }
 
-    fn handle_fnt_def2(&mut self) -> OpCode {
-        let k = self.consume_two_bytes_as_scalar();
-        self.handle_fnt_def(k as i32)
-    }
-
-    fn handle_fnt_def3(&mut self) -> OpCode {
-        let k = self.consume_three_bytes_as_scalar();
-        self.handle_fnt_def(k as i32)
-    }
-
-    fn handle_fnt_def4(&mut self) -> OpCode {
-        let k = self.consume_four_bytes_as_scalar();
+    fn handle_fnt_def1(&mut self) -> DviousResult<OpCode> {
+        let k = self.reader.read_be::<u8>()?;
         self.handle_fnt_def(k)
     }
 
-    fn handle_fnt_def(&mut self, k: i32) -> OpCode {
-        let c = self.consume_four_bytes_as_scalar() as u32; 
-        let s = self.consume_four_bytes_as_scalar() as u32; 
-        let d = self.consume_four_bytes_as_scalar() as u32; 
-        let a = self.consume_one_byte_as_scalar();
-        let l = self.consume_one_byte_as_scalar();
-    
-        OpCode::FntDef {
-            k: k,
-            c: c, 
-            s: s, 
-            d: d, 
-            a: a, 
-            l: l, 
-            n: self.consume_n_bytes_as_vec(a as u32 + l as u32),
-        }
+    fn handle_fnt_def2(&mut self) -> DviousResult<OpCode> {
+        let k = self.reader.read_be::<u16>()?;
+        self.handle_fnt_def(k)
+    }
+
+    fn handle_fnt_def3(&mut self) -> DviousResult<OpCode> {
+        let k = self.reader.read_be::<u24>()?;
+        self.handle_fnt_def(k)
+    }
+
+    fn handle_fnt_def4(&mut self) -> DviousResult<OpCode> {
+        let k = self.reader.read_be::<i32>()?;
+        self.handle_fnt_def(k)
     }
 
     // Pre and post
 
-    fn handle_pre(&mut self) -> OpCode {
-        let i = self.consume_one_byte_as_scalar(); 
-        let num = self.consume_four_bytes_as_scalar() as u32; 
-        let den = self.consume_four_bytes_as_scalar() as u32; 
-        let mag = self.consume_four_bytes_as_scalar() as u32;
-        let k = self.consume_one_byte_as_scalar();
+    fn handle_pre(&mut self) -> DviousResult<OpCode> {
+        let i = self.reader.read_be::<u8>()?;
+        let num = self.reader.read_be::<u32>()?;
+        let den = self.reader.read_be::<u32>()?;
+        let mag = self.reader.read_be::<u32>()?;
+        let k = self.reader.read_be::<u8>()?;
     
-        OpCode::Pre {
+        Ok(OpCode::Pre {
             i: i,
             num: num, 
             den: den, 
             mag: mag, 
             k: k, 
-            x: self.consume_n_bytes_as_vec(k as u32),
-        }
+            x: self.reader.read_vector_be::<u8>(k as usize)?,
+        })
     }
 
-    fn handle_post(&mut self) -> OpCode {
-        self.consume_four_bytes_as_scalar();
+    fn handle_post(&mut self) -> DviousResult<OpCode> {
+        self.reader.read_be::<i32>()?;
         self.last_post = Option::Some(self.number_of_instructions);
 
-        OpCode::Post { 
+        Ok(OpCode::Post { 
             p: self.last_bop,
-            num: self.consume_four_bytes_as_scalar() as u32,
-            den: self.consume_four_bytes_as_scalar() as u32,
-            mag: self.consume_four_bytes_as_scalar() as u32,
-            l : self.consume_four_bytes_as_scalar() as u32,
-            u : self.consume_four_bytes_as_scalar() as u32,
-            s : self.consume_two_bytes_as_scalar() as u16,
-            t : self.consume_two_bytes_as_scalar() as u16,
-        }
+            num: self.reader.read_be::<u32>()?,
+            den: self.reader.read_be::<u32>()?,
+            mag: self.reader.read_be::<u32>()?,
+            l : self.reader.read_be::<u32>()?,
+            u : self.reader.read_be::<u32>()?,
+            s : self.reader.read_be::<u16>()?,
+            t : self.reader.read_be::<u16>()?,
+        })
     }
 
-    fn handle_post_post(&mut self) -> OpCode {
-        self.consume_four_bytes_as_scalar();
+    fn handle_post_post(&mut self) -> DviousResult<OpCode> {
+        // Consume unused pointer to post command
+        self.reader.read_be::<i32>()?;
 
         let result = OpCode::PostPost { 
             q: self.last_post,
-            i: self.consume_one_byte_as_scalar()
+            i: self.reader.read_be::<u8>()?
         };
 
         // Consume padding
-        while self.position < self.bytes.len() && self.bytes[self.position] == 223 {
-            self.consume_one_byte_as_scalar();
+        while self.reader.has_more() && self.reader.peek_be::<u8>()? == 223 {
+            self.reader.read_be::<u8>()?;
         };
         
-        result
-    }
-
-    // Read bytes
-
-    fn consume_one_byte_as_scalar(&mut self) -> u8 {
-        self.consume_n_bytes_as_scalar(1) as u8
-    }
-
-    fn consume_two_bytes_as_scalar(&mut self) -> u32 {
-        self.consume_n_bytes_as_scalar(2)
-    }
-
-    fn consume_three_bytes_as_scalar(&mut self) -> u32 {
-        self.consume_n_bytes_as_scalar(3)
-    }
-
-    fn consume_four_bytes_as_scalar(&mut self) -> i32 {
-        self.consume_n_bytes_as_scalar(4) as i32
-    }
-
-    fn consume_n_bytes_as_scalar(&mut self, n: u32) -> u32 {
-        debug_assert!(n <= 4, "Can at most read u32 with n == 4");
-
-        let mut result: u32 = 0;
-        for i in (0..n).rev() {
-            // Bytes are in big endian
-            let byte = self.bytes[self.position] as u32;
-            self.position += 1;
-            result |= byte << (8 * i);
-        }
-
-        result
-    }
-
-    fn consume_n_bytes_as_vec(&mut self, k: u32) -> Vec<u8> {
-        let mut result = Vec::with_capacity(k as usize);
-
-        for _ in 0..k {
-            result.push(self.consume_one_byte_as_scalar() as u8);
-        }
-
-        assert_eq!(result.len(), k as usize);
-
-        result
-    }
-
-    fn has_more(&self) -> bool {
-        self.position < self.bytes.len()
+        Ok(result)
     }
 }
 
@@ -594,13 +553,14 @@ impl Disassembler {
 mod tests {
     use dvi::disassembler::disassemble;
     use dvi::opcodes::OpCode;
+    use errors::DviousResult;
 
     #[test]
     fn test_disassemble_set_char() {
         for i in 0..127 + 1 {
             let result = disassemble(vec![i]);
 
-            assert_that_opcode_was_generated(result, OpCode::SetChar { c: i as u32 })
+            assert_that_opcode_was_generated(result, OpCode::Set { c: i as i32 })
         }
     }
 
@@ -752,16 +712,16 @@ mod tests {
 
     #[test]
     fn test_disassemble_right1() {
-        let result = disassemble(vec![143, 0xAB]);
+        let result = disassemble(vec![143, 0x42]);
 
-        assert_that_opcode_was_generated(result, OpCode::Right { b: 0xAB })
+        assert_that_opcode_was_generated(result, OpCode::Right { b: 0x42 })
     }
 
     #[test]
     fn test_disassemble_right2() {
-        let result = disassemble(vec![144, 0xAB, 0xCD]);
+        let result = disassemble(vec![144, 0x0B, 0xCD]);
 
-        assert_that_opcode_was_generated(result, OpCode::Right { b: 0xABCD })
+        assert_that_opcode_was_generated(result, OpCode::Right { b: 0x0BCD })
     }
 
     #[test]
@@ -789,16 +749,16 @@ mod tests {
 
    #[test]
     fn test_disassemble_w1() {
-        let result = disassemble(vec![148, 0xAB]);
+        let result = disassemble(vec![148, 0xD6]);
 
-        assert_that_opcode_was_generated(result, OpCode::W { b: 0xAB })
+        assert_that_opcode_was_generated(result, OpCode::W { b: -42 })
     }
 
     #[test]
     fn test_disassemble_w2() {
-        let result = disassemble(vec![149, 0xAB, 0xCD]);
+        let result = disassemble(vec![149, 0xEF, 0x98]);
 
-        assert_that_opcode_was_generated(result, OpCode::W { b: 0xABCD })
+        assert_that_opcode_was_generated(result, OpCode::W { b: -4200 })
     }
 
     #[test]
@@ -826,16 +786,16 @@ mod tests {
 
    #[test]
     fn test_disassemble_x1() {
-        let result = disassemble(vec![153, 0xAB]);
+        let result = disassemble(vec![153, 0xD6]);
 
-        assert_that_opcode_was_generated(result, OpCode::X { b: 0xAB })
+        assert_that_opcode_was_generated(result, OpCode::X { b: -42 })
     }
 
     #[test]
     fn test_disassemble_x2() {
-        let result = disassemble(vec![154, 0xAB, 0xCD]);
+        let result = disassemble(vec![154, 0xEF, 0x98]);
 
-        assert_that_opcode_was_generated(result, OpCode::X { b: 0xABCD })
+        assert_that_opcode_was_generated(result, OpCode::X { b: -4200 })
     }
 
     #[test]
@@ -856,16 +816,16 @@ mod tests {
 
    #[test]
     fn test_disassemble_down1() {
-        let result = disassemble(vec![157, 0xAB]);
+        let result = disassemble(vec![157, 0xD6]);
 
-        assert_that_opcode_was_generated(result, OpCode::Down { a: 0xAB })
+        assert_that_opcode_was_generated(result, OpCode::Down { a: -42 })
     }
 
     #[test]
     fn test_disassemble_down2() {
-        let result = disassemble(vec![158, 0xAB, 0xCD]);
+        let result = disassemble(vec![158, 0xEF, 0x98]);
 
-        assert_that_opcode_was_generated(result, OpCode::Down { a: 0xABCD })
+        assert_that_opcode_was_generated(result, OpCode::Down { a: -4200 })
     }
 
     #[test]
@@ -893,16 +853,16 @@ mod tests {
 
    #[test]
     fn test_disassemble_y1() {
-        let result = disassemble(vec![162, 0xAB]);
+        let result = disassemble(vec![162, 0xD6]);
 
-        assert_that_opcode_was_generated(result, OpCode::Y { a: 0xAB })
+        assert_that_opcode_was_generated(result, OpCode::Y { a: -42 })
     }
 
     #[test]
     fn test_disassemble_y2() {
-        let result = disassemble(vec![163, 0xAB, 0xCD]);
+        let result = disassemble(vec![163, 0xEF, 0x98]);
 
-        assert_that_opcode_was_generated(result, OpCode::Y { a: 0xABCD })
+        assert_that_opcode_was_generated(result, OpCode::Y { a: -4200 })
     }
 
     #[test]
@@ -930,16 +890,16 @@ mod tests {
 
    #[test]
     fn test_disassemble_z1() {
-        let result = disassemble(vec![167, 0xAB]);
+        let result = disassemble(vec![167, 0xD6]);
 
-        assert_that_opcode_was_generated(result, OpCode::Z { a: 0xAB })
+        assert_that_opcode_was_generated(result, OpCode::Z { a: -42 })
     }
 
     #[test]
     fn test_disassemble_z2() {
-        let result = disassemble(vec![168, 0xAB, 0xCD]);
+        let result = disassemble(vec![168, 0xEF, 0x98]);
 
-        assert_that_opcode_was_generated(result, OpCode::Z { a: 0xABCD })
+        assert_that_opcode_was_generated(result, OpCode::Z { a: -4200 })
     }
 
     #[test]
@@ -963,7 +923,7 @@ mod tests {
         for i in 172..234 + 1 {
             let result = disassemble(vec![i]);
 
-            assert_that_opcode_was_generated(result, OpCode::FntNum { k: i as u32 })
+            assert_that_opcode_was_generated(result, OpCode::Fnt { k: i32::from(i) })
         }
     }
 
@@ -1235,7 +1195,7 @@ mod tests {
 
     // Helper
 
-    fn assert_that_opcode_was_generated(result: Result<Vec<OpCode>, String>, opcode: OpCode) {
+    fn assert_that_opcode_was_generated(result: DviousResult<Vec<OpCode>>, opcode: OpCode) {
         let opcodes = result.unwrap();
         assert_eq!(opcodes.len(), 1);
         assert_eq!(opcodes[0], opcode);

@@ -16,6 +16,18 @@ impl From<u32> for u24 {
     }
 }
 
+impl From<u24> for i32 {
+    fn from(num: u24) -> Self {
+        num.0 as i32
+    }
+}
+
+impl From<i32> for u24 {
+    fn from(num: i32) -> Self {
+        u24(num as u32)
+    }
+}
+
 // i24
 
 #[derive(Debug, PartialEq)]

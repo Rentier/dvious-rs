@@ -3,7 +3,6 @@ use std::fmt;
 #[derive(Debug, PartialEq)]
 #[cfg_attr(rustfmt, rustfmt_skip)]
 pub enum OpCode {
-    SetChar { c: u32 },
     Set { c: i32 },
     SetRule { a: i32, b: i32 },
     Put { c: i32 },
@@ -23,9 +22,8 @@ pub enum OpCode {
     Y { a: i32 },
     Z0,
     Z { a: i32 },
-    FntNum { k: u32},
     Fnt { k: i32 },
-    Xxx { k: i32, x: Vec<u8> },
+    Xxx { k: u32, x: Vec<u8> },
     FntDef { k: i32, c: u32, s: u32, d: u32, a: u8, l: u8, n: Vec<u8> },
     Pre { i: u8, num: u32, den: u32, mag: u32, k: u8, x: Vec<u8> },
     Post { p: Option<usize>, num: u32, den: u32, mag: u32, l: u32, u: u32, s: u16, t: u16 },

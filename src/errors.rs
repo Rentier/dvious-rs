@@ -5,6 +5,7 @@ pub enum DviousError {
     IoError(io::Error),
     KpsewhichError(String),
     IndexOutOfBoundsError,
+    UnknownOpcodeError(u8),
 }
 
 pub type DviousResult<T> = Result<T, DviousError>;

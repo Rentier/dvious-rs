@@ -62,7 +62,7 @@ fn disassemble_file(input: &str) -> Result<(), String> {
     file.read_to_end(&mut buffer).unwrap();
 
     let opcodes = match disassemble(buffer) {
-        Err(why) => return Err(why),
+        Err(why) => return Err(format!("{:?}", why)),
         Ok(opcodes) => opcodes,
     };
 

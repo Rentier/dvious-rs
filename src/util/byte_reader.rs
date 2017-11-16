@@ -33,6 +33,17 @@ impl ByteReader {
         Ok(result)
     }
 
+    pub fn read_vector_be<T: Readable>(&mut self, k: usize) -> DviousResult<Vec<T>> {
+        let number_of_bytes = T::size_in_bytes();
+        let mut result = Vec::with_capacity(k);
+        for i in 0..k {
+            let buffer = self.read_slice(number_of_bytes)?;
+            let x = T::from_u8_be(buffer);
+            result.push(x);
+        }
+        Ok(result)
+    }
+
     fn peek_slice(&self, n: usize) -> Result<&[u8], DviousError> {
         let start = self.position;
         let end = self.position + n;
@@ -289,7 +300,25 @@ mod tests {
         assert_eq!(result, 0x0EADBEEF);
     }
 
-    // Longer tests
+    // Read vector
+
+    #[test]
+    fn test_read_vector_u8() {
+        let mut reader = get_reader(vec![0xAA, 0xBB, 0xCC, 0xDD, 0xEE]);
+        let result = reader.read_vector_be::<u8>(5).unwrap();
+
+        assert_eq!(result, vec![0xAA, 0xBB, 0xCC, 0xDD, 0xEE]);
+    }
+
+    #[test]
+    fn test_read_vector_u16() {
+        let mut reader = get_reader(vec![0xAA, 0xAA, 0xBB, 0xBB, 0xCC, 0xCC, 0xDD, 0xDD]);
+        let result = reader.read_vector_be::<u16>(4).unwrap();
+
+        assert_eq!(result, vec![0xAAAA, 0xBBBB, 0xCCCC, 0xDDDD]);
+    }
+
+    // Several reads
 
     #[test]
     fn test_read_several_be() {
@@ -307,6 +336,8 @@ mod tests {
         assert!(!reader.has_more(), "Expected that reader has no more");
         assert!(reader.read_be::<u32>().is_err(), "Expected that 'e' is Err");
     }
+
+    // Has more
 
     #[test]
     fn test_has_more() {
