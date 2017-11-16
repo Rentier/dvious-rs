@@ -18,7 +18,9 @@ where
             .to_string();
         Ok(s)
     } else {
-        Err(DviousError::KpsewhichError("Kpsewhich finished with nonzero status code!".to_string()))
+        Err(DviousError::KpsewhichError(
+            "Kpsewhich finished with nonzero status code!".to_string(),
+        ))
     }
 }
 
