@@ -1,5 +1,5 @@
 use errors::{DviousError, DviousResult};
-use util::num::u24;
+use util::num::{i24, u24};
 
 pub struct ByteReader {
     position: usize,
@@ -12,7 +12,7 @@ pub trait Readable {
 }
 
 impl ByteReader {
-    fn new(bytes: Vec<u8>) -> ByteReader {
+    pub fn new(bytes: Vec<u8>) -> ByteReader {
         ByteReader {
             position: 0,
             bytes: bytes,
@@ -37,9 +37,6 @@ impl ByteReader {
         let start = self.position;
         let end = self.position + n;
 
-        println!("Start: {}, End: {}, Len: {}", start, end, self.bytes.len());
-
-
         if end <= self.bytes.len() {
             let result = &self.bytes[start..end];
             Ok(result)
@@ -61,14 +58,16 @@ impl ByteReader {
         }
     }
 
-    fn has_more(&self) -> bool {
+    pub fn has_more(&self) -> bool {
         self.position < self.bytes.len()
     }
 }
 
+// Unsigned
+
 impl Readable for u8 {
-    fn from_u8_be(a: &[u8]) -> Self {
-        a[0]
+    fn from_u8_be(b: &[u8]) -> Self {
+        b[0]
     }
 
     fn size_in_bytes() -> usize {
@@ -107,9 +106,52 @@ impl Readable for u32 {
     }
 }
 
+// Signed
+
+impl Readable for i8 {
+    fn from_u8_be(b: &[u8]) -> Self {
+        b[0] as i8
+    }
+
+    fn size_in_bytes() -> usize {
+        1
+    }
+}
+
+impl Readable for i16 {
+    fn from_u8_be(b: &[u8]) -> Self {
+        i16::from(b[0]) << 8 | i16::from(b[1])
+    }
+
+    fn size_in_bytes() -> usize {
+        2
+    }
+}
+
+impl Readable for i24 {
+    fn from_u8_be(b: &[u8]) -> Self {
+        let result = i32::from(b[0]) << 16 | i32::from(b[1]) << 8 | i32::from(b[2]);
+        i24::from(result)
+    }
+
+    fn size_in_bytes() -> usize {
+        3
+    }
+}
+
+impl Readable for i32 {
+    fn from_u8_be(b: &[u8]) -> Self {
+        i32::from(b[0]) << 24 | i32::from(b[1]) << 16 | i32::from(b[2]) << 8 | i32::from(b[3])
+    }
+
+    fn size_in_bytes() -> usize {
+        4
+    }
+}
+
 #[cfg(test)]
 mod tests {
-    use util::byte_reader::{ByteReader, u24};
+    use util::byte_reader::{ByteReader, i24, u24};
 
     // Peek unsigned
 
@@ -145,6 +187,40 @@ mod tests {
         assert_eq!(result, 0xDEADBEEF);
     }
 
+    // Peek signed
+
+    #[test]
+    fn test_peek_i8_be() {
+        let reader = get_reader(vec![0x42]);
+        let result = reader.peek_be::<i8>().unwrap();
+
+        assert_eq!(result, 0x42);
+    }
+
+    #[test]
+    fn test_peek_i16_be() {
+        let reader = get_reader(vec![0x1E, 0xAD]);
+        let result = reader.peek_be::<i16>().unwrap();
+
+        assert_eq!(result, 0x1EAD);
+    }
+
+    #[test]
+    fn test_peek_i24_be() {
+        let reader = get_reader(vec![0xDE, 0xAD, 0xBE]);
+        let result = reader.peek_be::<i24>().unwrap();
+
+        assert_eq!(result, i24::from(0xDEADBE));
+    }
+
+    #[test]
+    fn test_peek_i32_be() {
+        let reader = get_reader(vec![0x0E, 0xAD, 0xBE, 0xEF]);
+        let result = reader.peek_be::<i32>().unwrap();
+
+        assert_eq!(result, 0x0EADBEEF);
+    }
+
     // Read unsigned
 
     #[test]
@@ -178,6 +254,42 @@ mod tests {
 
         assert_eq!(result, 0xDEADBEEF);
     }
+
+    // Read signed
+
+    #[test]
+    fn test_read_i8_be() {
+        let mut reader = get_reader(vec![0x42]);
+        let result = reader.read_be::<i8>().unwrap();
+
+        assert_eq!(result, 0x42);
+    }
+
+    #[test]
+    fn test_read_i16_be() {
+        let mut reader = get_reader(vec![0x1E, 0xAD]);
+        let result = reader.read_be::<i16>().unwrap();
+
+        assert_eq!(result, 0x1EAD);
+    }
+
+    #[test]
+    fn test_read_i24_be() {
+        let mut reader = get_reader(vec![0xDE, 0xAD, 0xBE]);
+        let result = reader.read_be::<i24>().unwrap();
+
+        assert_eq!(result, i24::from(0xDEADBE));
+    }
+
+    #[test]
+    fn test_read_i32_be() {
+        let mut reader = get_reader(vec![0x0E, 0xAD, 0xBE, 0xEF]);
+        let result = reader.read_be::<i32>().unwrap();
+
+        assert_eq!(result, 0x0EADBEEF);
+    }
+
+    // Longer tests
 
     #[test]
     fn test_read_several_be() {
