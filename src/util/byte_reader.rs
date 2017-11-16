@@ -36,7 +36,7 @@ impl ByteReader {
     pub fn read_vector_be<T: Readable>(&mut self, k: usize) -> DviousResult<Vec<T>> {
         let number_of_bytes = T::size_in_bytes();
         let mut result = Vec::with_capacity(k);
-        for i in 0..k {
+        for _ in 0..k {
             let buffer = self.read_slice(number_of_bytes)?;
             let x = T::from_u8_be(buffer);
             result.push(x);

@@ -1,7 +1,7 @@
 // u24
 
 #[derive(Debug, PartialEq)]
-#[warn(non_camel_case_types)]
+#[allow(non_camel_case_types)]
 pub struct u24(u32);
 
 impl From<u24> for u32 {
@@ -31,7 +31,7 @@ impl From<i32> for u24 {
 // i24
 
 #[derive(Debug, PartialEq)]
-#[warn(non_camel_case_types)]
+#[allow(non_camel_case_types)]
 pub struct i24(i32);
 
 impl From<i24> for i32 {
