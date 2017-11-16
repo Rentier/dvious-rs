@@ -639,7 +639,7 @@ mod tests {
     #[cfg_attr(rustfmt, rustfmt_skip)]
     fn test_disassemble_bop() {
         let result = disassemble(vec![
-            139, 
+            139,
             0x01, 0x11, 0x11, 0x11,
             0x02, 0x22, 0x22, 0x22,
             0x03, 0x33, 0x33, 0x33,
@@ -722,14 +722,14 @@ mod tests {
 
     // W
 
-   #[test]
+    #[test]
     fn test_disassemble_w0() {
         let result = disassemble(vec![147]);
 
         assert_that_opcode_was_generated(result, OpCode::W0)
     }
 
-   #[test]
+    #[test]
     fn test_disassemble_w1() {
         let result = disassemble(vec![148, 0xD6]);
 
@@ -759,14 +759,14 @@ mod tests {
 
     // X
 
-   #[test]
+    #[test]
     fn test_disassemble_x0() {
         let result = disassemble(vec![152]);
 
         assert_that_opcode_was_generated(result, OpCode::X0)
     }
 
-   #[test]
+    #[test]
     fn test_disassemble_x1() {
         let result = disassemble(vec![153, 0xD6]);
 
@@ -792,11 +792,11 @@ mod tests {
         let result = disassemble(vec![156, 0x00, 0x11, 0x22, 0x33]);
 
         assert_that_opcode_was_generated(result, OpCode::X { b: 0x112233 })
-    }   
+    }
 
     // Down
 
-   #[test]
+    #[test]
     fn test_disassemble_down1() {
         let result = disassemble(vec![157, 0xD6]);
 
@@ -826,14 +826,14 @@ mod tests {
 
     // Y
 
-   #[test]
+    #[test]
     fn test_disassemble_y0() {
         let result = disassemble(vec![161]);
 
         assert_that_opcode_was_generated(result, OpCode::Y0)
     }
 
-   #[test]
+    #[test]
     fn test_disassemble_y1() {
         let result = disassemble(vec![162, 0xD6]);
 
@@ -863,14 +863,14 @@ mod tests {
 
     // Z
 
-   #[test]
+    #[test]
     fn test_disassemble_z0() {
         let result = disassemble(vec![166]);
 
         assert_that_opcode_was_generated(result, OpCode::Z0)
     }
 
-   #[test]
+    #[test]
     fn test_disassemble_z1() {
         let result = disassemble(vec![167, 0xD6]);
 
@@ -913,28 +913,28 @@ mod tests {
     fn test_disassemble_fnt1() {
         let result = disassemble(vec![235, 0xAB]);
 
-        assert_that_opcode_was_generated(result, OpCode::Fnt {k: 0xAB })
+        assert_that_opcode_was_generated(result, OpCode::Fnt { k: 0xAB })
     }
 
     #[test]
     fn test_disassemble_fnt2() {
         let result = disassemble(vec![236, 0xAB, 0xCD]);
 
-        assert_that_opcode_was_generated(result, OpCode::Fnt {k: 0xABCD })
+        assert_that_opcode_was_generated(result, OpCode::Fnt { k: 0xABCD })
     }
 
     #[test]
     fn test_disassemble_fnt3() {
         let result = disassemble(vec![237, 0xAB, 0xCD, 0xEF]);
 
-        assert_that_opcode_was_generated(result, OpCode::Fnt {k: 0xABCDEF })
+        assert_that_opcode_was_generated(result, OpCode::Fnt { k: 0xABCDEF })
     }
 
     #[test]
     fn test_disassemble_fnt4() {
         let result = disassemble(vec![238, 0x11, 0x22, 0x33, 0x44]);
 
-        assert_that_opcode_was_generated(result, OpCode::Fnt {k: 0x11223344 })
+        assert_that_opcode_was_generated(result, OpCode::Fnt { k: 0x11223344 })
     }
 
     // Xxx
@@ -944,11 +944,11 @@ mod tests {
         let result = disassemble(vec![239, 0x5, 0x1, 0x2, 0x3, 0x4, 0x5]);
 
         assert_that_opcode_was_generated(
-            result, 
+            result,
             OpCode::Xxx {
                 k: 0x5,
-                x: vec![1, 2, 3, 4, 5] 
-            }
+                x: vec![1, 2, 3, 4, 5],
+            },
         )
     }
 
@@ -957,11 +957,11 @@ mod tests {
         let result = disassemble(vec![240, 0x0, 0x5, 0x1, 0x2, 0x3, 0x4, 0x5]);
 
         assert_that_opcode_was_generated(
-            result, 
+            result,
             OpCode::Xxx {
                 k: 0x5,
-                x: vec![1, 2, 3, 4, 5] 
-            }
+                x: vec![1, 2, 3, 4, 5],
+            },
         )
     }
 
@@ -970,11 +970,11 @@ mod tests {
         let result = disassemble(vec![241, 0x0, 0x0, 0x5, 0x1, 0x2, 0x3, 0x4, 0x5]);
 
         assert_that_opcode_was_generated(
-            result, 
+            result,
             OpCode::Xxx {
                 k: 0x5,
-                x: vec![1, 2, 3, 4, 5] 
-            }
+                x: vec![1, 2, 3, 4, 5],
+            },
         )
     }
 
@@ -983,23 +983,24 @@ mod tests {
         let result = disassemble(vec![242, 0x0, 0x0, 0x0, 0x5, 0x1, 0x2, 0x3, 0x4, 0x5]);
 
         assert_that_opcode_was_generated(
-            result, 
+            result,
             OpCode::Xxx {
                 k: 0x5,
-                x: vec![1, 2, 3, 4, 5] 
-            }
+                x: vec![1, 2, 3, 4, 5],
+            },
         )
     }
 
     // fnt_def
 
     #[test]
+    #[cfg_attr(rustfmt, rustfmt_skip)]
     fn test_disassemble_fnt_def1() {
         let result = disassemble(vec![
-            243, 
-            0x42, 
-            0xDE, 0xAD, 0xBE, 0xEF, 
-            0xCA, 0xFE, 0xBA, 0xBE, 
+            243,
+            0x42,
+            0xDE, 0xAD, 0xBE, 0xEF,
+            0xCA, 0xFE, 0xBA, 0xBE,
             0xBA, 0xAA, 0xAA, 0xAD,
             0x2,
             0x3,
@@ -1007,7 +1008,7 @@ mod tests {
         ]);
 
         assert_that_opcode_was_generated(
-            result, 
+            result,
             OpCode::FntDef {
                 k: 0x42,
                 c: 0xDEADBEEF,
@@ -1021,12 +1022,13 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(rustfmt, rustfmt_skip)]
     fn test_disassemble_fnt_def2() {
         let result = disassemble(vec![
-            244, 
-            0xAB, 0xCD, 
-            0xDE, 0xAD, 0xBE, 0xEF, 
-            0xCA, 0xFE, 0xBA, 0xBE, 
+            244,
+            0xAB, 0xCD,
+            0xDE, 0xAD, 0xBE, 0xEF,
+            0xCA, 0xFE, 0xBA, 0xBE,
             0xBA, 0xAA, 0xAA, 0xAD,
             0x2,
             0x3,
@@ -1034,7 +1036,7 @@ mod tests {
         ]);
 
         assert_that_opcode_was_generated(
-            result, 
+            result,
             OpCode::FntDef {
                 k: 0xABCD,
                 c: 0xDEADBEEF,
@@ -1048,12 +1050,13 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(rustfmt, rustfmt_skip)]
     fn test_disassemble_fnt_def3() {
         let result = disassemble(vec![
-            245, 
-            0xAB, 0xCD, 0xEF, 
-            0xDE, 0xAD, 0xBE, 0xEF, 
-            0xCA, 0xFE, 0xBA, 0xBE, 
+            245,
+            0xAB, 0xCD, 0xEF,
+            0xDE, 0xAD, 0xBE, 0xEF,
+            0xCA, 0xFE, 0xBA, 0xBE,
             0xBA, 0xAA, 0xAA, 0xAD,
             0x2,
             0x3,
@@ -1061,7 +1064,7 @@ mod tests {
         ]);
 
         assert_that_opcode_was_generated(
-            result, 
+            result,
             OpCode::FntDef {
                 k: 0xABCDEF,
                 c: 0xDEADBEEF,
@@ -1075,12 +1078,13 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(rustfmt, rustfmt_skip)]
     fn test_disassemble_fnt_def4() {
         let result = disassemble(vec![
-            246, 
-            0x0A, 0xBC, 0xDE, 0x12, 
-            0xDE, 0xAD, 0xBE, 0xEF, 
-            0xCA, 0xFE, 0xBA, 0xBE, 
+            246,
+            0x0A, 0xBC, 0xDE, 0x12,
+            0xDE, 0xAD, 0xBE, 0xEF,
+            0xCA, 0xFE, 0xBA, 0xBE,
             0xBA, 0xAA, 0xAA, 0xAD,
             0x2,
             0x3,
@@ -1088,7 +1092,7 @@ mod tests {
         ]);
 
         assert_that_opcode_was_generated(
-            result, 
+            result,
             OpCode::FntDef {
                 k: 0x0ABCDE12,
                 c: 0xDEADBEEF,
@@ -1104,37 +1108,39 @@ mod tests {
     // Pre and post
 
     #[test]
+    #[cfg_attr(rustfmt, rustfmt_skip)]
     fn test_disassemble_pre() {
         let result = disassemble(vec![
-            247, 
-            0x42, 
-            0xDE, 0xAD, 0xBE, 0xEF, 
-            0xCA, 0xFE, 0xBA, 0xBE, 
+            247,
+            0x42,
+            0xDE, 0xAD, 0xBE, 0xEF,
+            0xCA, 0xFE, 0xBA, 0xBE,
             0xBA, 0xAA, 0xAA, 0xAD,
             0x5,
             0x1, 0x2, 0x3, 0x4, 0x5
         ]);
 
         assert_that_opcode_was_generated(
-            result, 
+            result,
             OpCode::Pre {
                 i: 0x42,
-                num: 0xDEADBEEF, 
-                den: 0xCAFEBABE, 
-                mag: 0xBAAAAAAD, 
-                k: 0x5, 
+                num: 0xDEADBEEF,
+                den: 0xCAFEBABE,
+                mag: 0xBAAAAAAD,
+                k: 0x5,
                 x: vec![1, 2, 3, 4, 5],
             }
         )
     }
 
     #[test]
+    #[cfg_attr(rustfmt, rustfmt_skip)]
     fn test_disassemble_post() {
         let result = disassemble(vec![
             248,
             0x00, 0x00, 0x00, 0x42,
-            0xDE, 0xAD, 0xBE, 0xEF, 
-            0xCA, 0xFE, 0xBA, 0xBE, 
+            0xDE, 0xAD, 0xBE, 0xEF,
+            0xCA, 0xFE, 0xBA, 0xBE,
             0xBA, 0xAA, 0xAA, 0xAD,
             0xDE, 0xAD, 0xC0, 0xDE,
             0xB1, 0x05, 0xF0, 0x0D,
@@ -1143,7 +1149,7 @@ mod tests {
         ]);
 
         assert_that_opcode_was_generated(
-            result, 
+            result,
             OpCode::Post {
                 p: Option::None,
                 num: 0xDEADBEEF,
@@ -1158,6 +1164,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(rustfmt, rustfmt_skip)]
     fn test_disassemble_post_post() {
         let result = disassemble(vec![
             249,
@@ -1167,7 +1174,7 @@ mod tests {
         ]);
 
         assert_that_opcode_was_generated(
-            result, 
+            result,
             OpCode::PostPost {
                 q: Option::None,
                 i: 0x42,
