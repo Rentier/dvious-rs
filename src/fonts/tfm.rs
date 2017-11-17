@@ -12,7 +12,10 @@ pub struct TexFontMetric {
 pub struct TexFontMetricHeader {
     checksum: u32,
     design_size: f64,
-    encoding: String,
+    encoding: Option<String>,
+    font_identifier: Option<String>,
+    face: Option<u8>,
+    misc: Vec<u8>,
 }
 
 struct TexFontMetricReader {
@@ -45,23 +48,77 @@ impl TexFontMetricReader {
     }
 
     fn read_header(&mut self, header_size: u16) -> DviousResult<TexFontMetricHeader> {
+        let mut bytes_read = 0_u16;
         let checksum = self.reader.read_be::<u32>()?;
+        bytes_read += 4;
         let design_size = self.read_fixword()?;
+        bytes_read += 4;
 
         // Handle encoding information
+        const ENCODING_FIELD_LENGTH : u16 = 39;
         let encoding_len = self.reader.read_be::<u8>()?;
+        bytes_read += 1;
         if encoding_len > 39 {
             return Err(DviousError::TfmParseError(format!(
                 "TFM header specified to have {} bytes, which is more than the allowed 0..39",
                 encoding_len
             )));
         }
-        let encoding = self.read_utf8_string(encoding_len as usize)?;
+        
+        let encoding = if bytes_read < header_size {
+            let s = self.read_utf8_string(encoding_len as usize)?;
+            bytes_read += ENCODING_FIELD_LENGTH;
+            // Consume leftover bytes
+            for _ in u16::from(encoding_len)..ENCODING_FIELD_LENGTH {
+                self.reader.read_be::<u8>()?;
+            }
+            Option::Some(s)
+        } else {
+            Option::None
+        };
+
+        // Font identifier
+        let font_identifier = if bytes_read < header_size {
+            let s = self.read_utf8_string(20)?;
+            bytes_read += 20;
+            Option::Some(s)
+        } else {
+            Option::None
+        };
+
+        println!("Parsed font identifier");
+
+        // Face
+        let face = if bytes_read < header_size {
+            self.reader.read_be::<u8>()?;
+            self.reader.read_be::<u16>()?;
+            println!("Has more: {}; Total: {}", self.reader.has_more(), self.reader.len());
+            let face_byte = self.reader.read_be::<u8>()?;
+
+            bytes_read += 4;
+            Option::Some(face_byte)
+        } else {
+            Option::None
+        };
+
+        println!("Parsed font face");
+
+        // Misc
+        let mut misc = Vec::new();
+        while bytes_read < header_size {
+            println!("{}, {}, {}, {}", bytes_read, header_size, self.reader.len(), self.reader.has_more());
+            let b = self.reader.read_be::<u8>()?;
+            misc.push(b);
+            bytes_read += 1;
+        }
 
         Ok(TexFontMetricHeader {
             checksum,
             design_size,
             encoding,
+            font_identifier,
+            face,
+            misc,
         })
     }
 
@@ -88,8 +145,20 @@ mod tests {
     fn test_read_header() {
         let data = vec![
             0xAA, 0xBB, 0xCC, 0xDD,
+            
             0x00, 0xA0, 0x00, 0x00,
-            0x04, 0x54, 0x65, 0x73, 0x74,
+
+            0x04, 0x54, 0x65, 0x73, 0x74, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+
+            0x48, 0x45, 0x4c, 0x56, 0x45, 0x54, 0x49, 0x43, 0x41, 0x00,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            
+            0x00, 0x00, 0x00, 0x12,
+
+            0xAA, 0xBB, 0xCC, 0xDD
         ];
         let bytes = data.len() as u16;
         let mut tfm_reader = TexFontMetricReader::new(data);
@@ -101,7 +170,10 @@ mod tests {
             TexFontMetricHeader {
                 checksum: 0xAABBCCDD,
                 design_size: 10.0,
-                encoding: "Test".to_string(),
+                encoding: Some("Test".to_string()),
+                font_identifier: Some("HELVETICA\0\0\0\0\0\0\0\0\0\0\0".to_string()),
+                face: Option::Some(0x12),
+                misc: vec![0xAA, 0xBB, 0xCC, 0xDD]
             }
         );
     }
