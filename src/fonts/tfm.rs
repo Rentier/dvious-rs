@@ -1,11 +1,10 @@
-use std::str;
-
 use errors::{DviousError, DviousResult};
 use util::byte_reader::ByteReader;
 
 #[derive(Debug, PartialEq)]
 pub struct TexFontMetric {
     header: TexFontMetricHeader,
+    char_info: Vec<TexFontCharInfo>,
 }
 
 #[derive(Debug, PartialEq)]
@@ -16,6 +15,24 @@ pub struct TexFontMetricHeader {
     font_identifier: Option<String>,
     face: Option<u8>,
     misc: Vec<u8>,
+}
+
+#[derive(Debug, PartialEq)]
+pub struct TexFontCharInfo {
+    character: u16,
+    width_index: u8,
+    height_index: u8,
+    depth_index: u8,
+    italic_index: u8,
+    tag: TexFontCharInfoTag,
+}
+
+#[derive(Debug, PartialEq)]
+pub enum TexFontCharInfoTag {
+    None,
+    Ligature(u8),
+    List(u8),
+    Extensible(u8),
 }
 
 struct TexFontMetricReader {
@@ -40,11 +57,17 @@ impl TexFontMetricReader {
             )));
         }
 
-        // Header
         let lh = self.reader.read_be::<u16>()?;
+        let bc = self.reader.read_be::<u16>()?;
+        let ec = self.reader.read_be::<u16>()?;
+
+        // Header
         let header = self.read_header(lh)?;
 
-        Ok(TexFontMetric { header })
+        // Character information
+        let char_info = self.read_char_info(bc, ec)?;
+
+        Ok(TexFontMetric { header, char_info })
     }
 
     fn read_header(&mut self, header_size: u16) -> DviousResult<TexFontMetricHeader> {
@@ -55,7 +78,7 @@ impl TexFontMetricReader {
         bytes_read += 4;
 
         // Handle encoding information
-        const ENCODING_FIELD_LENGTH : u16 = 39;
+        const ENCODING_FIELD_LENGTH: u16 = 39;
         let encoding_len = self.reader.read_be::<u8>()?;
         bytes_read += 1;
         if encoding_len > 39 {
@@ -64,7 +87,7 @@ impl TexFontMetricReader {
                 encoding_len
             )));
         }
-        
+
         let encoding = if bytes_read < header_size {
             let s = self.read_utf8_string(encoding_len as usize)?;
             bytes_read += ENCODING_FIELD_LENGTH;
@@ -86,13 +109,10 @@ impl TexFontMetricReader {
             Option::None
         };
 
-        println!("Parsed font identifier");
-
         // Face
         let face = if bytes_read < header_size {
             self.reader.read_be::<u8>()?;
             self.reader.read_be::<u16>()?;
-            println!("Has more: {}; Total: {}", self.reader.has_more(), self.reader.len());
             let face_byte = self.reader.read_be::<u8>()?;
 
             bytes_read += 4;
@@ -101,12 +121,16 @@ impl TexFontMetricReader {
             Option::None
         };
 
-        println!("Parsed font face");
-
         // Misc
         let mut misc = Vec::new();
         while bytes_read < header_size {
-            println!("{}, {}, {}, {}", bytes_read, header_size, self.reader.len(), self.reader.has_more());
+            println!(
+                "{}, {}, {}, {}",
+                bytes_read,
+                header_size,
+                self.reader.len(),
+                self.reader.has_more()
+            );
             let b = self.reader.read_be::<u8>()?;
             misc.push(b);
             bytes_read += 1;
@@ -121,6 +145,55 @@ impl TexFontMetricReader {
             misc,
         })
     }
+
+    fn read_char_info(&mut self, bc: u16, ec: u16) -> DviousResult<Vec<TexFontCharInfo>> {
+        let mut result = Vec::new();
+
+        for character in bc..ec + 1 {
+            let first_byte = self.reader.read_be::<u8>()?;
+            let second_byte = self.reader.read_be::<u8>()?;
+            let third_byte = self.reader.read_be::<u8>()?;
+            let fourth_byte = self.reader.read_be::<u8>()?;
+
+            let width_index = first_byte;
+            let height_index = (second_byte >> 4) * 16;
+            let depth_index = second_byte & 0x0F;
+            let italic_index = (third_byte >> 2) * 4;
+            let tag_value = third_byte & 0b0000_0011;
+            let remainder = fourth_byte;
+
+            let tag = self.read_char_info_tag(tag_value, remainder)?;
+
+            let char_info = TexFontCharInfo {
+                character,
+                width_index,
+                height_index,
+                depth_index,
+                italic_index,
+                tag,
+            };
+            result.push(char_info);
+        }
+
+        Ok(result)
+    }
+
+    fn read_char_info_tag(&self, tag_value: u8, remainder: u8) -> DviousResult<TexFontCharInfoTag> {
+        let tag = match tag_value {
+            0 => TexFontCharInfoTag::None,
+            1 => TexFontCharInfoTag::Ligature(remainder),
+            2 => TexFontCharInfoTag::List(remainder),
+            3 => TexFontCharInfoTag::Extensible(remainder),
+            _ => {
+                return Err(DviousError::TfmParseError(format!(
+                    "TFM character information specified invalid tag: {}",
+                    tag_value
+                )))
+            }
+        };
+        Ok(tag)
+    }
+
 
     fn read_fixword(&mut self) -> DviousResult<f64> {
         let fixword_factor = 2.0_f64.powi(-20);
@@ -145,7 +218,7 @@ mod tests {
     fn test_read_header() {
         let data = vec![
             0xAA, 0xBB, 0xCC, 0xDD,
-            
+
             0x00, 0xA0, 0x00, 0x00,
 
             0x04, 0x54, 0x65, 0x73, 0x74, 0x00, 0x00, 0x00, 0x00, 0x00,
@@ -155,15 +228,15 @@ mod tests {
 
             0x48, 0x45, 0x4c, 0x56, 0x45, 0x54, 0x49, 0x43, 0x41, 0x00,
             0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-            
+
             0x00, 0x00, 0x00, 0x12,
 
             0xAA, 0xBB, 0xCC, 0xDD
         ];
-        let bytes = data.len() as u16;
+        let number_of_bytes = data.len() as u16;
         let mut tfm_reader = TexFontMetricReader::new(data);
 
-        let header = tfm_reader.read_header(bytes).unwrap();
+        let header = tfm_reader.read_header(number_of_bytes).unwrap();
 
         assert_eq!(
             header,
@@ -176,6 +249,70 @@ mod tests {
                 misc: vec![0xAA, 0xBB, 0xCC, 0xDD]
             }
         );
+    }
+
+    // Char info
+
+    #[test]
+    fn test_read_charinfo() {
+        let data = vec![0x42, 0xAB, 0b101010_10, 0xAB];
+        let mut tfm_reader = TexFontMetricReader::new(data);
+
+        let char_info = tfm_reader.read_char_info(0x60, 0x60).unwrap();
+
+        assert_eq!(
+            char_info,
+            vec![
+                TexFontCharInfo {
+                    character: 0x60,
+                    width_index: 0x42,
+                    height_index: 0xA * 16,
+                    depth_index: 0xB,
+                    italic_index: 42 * 4,
+                    tag: TexFontCharInfoTag::List(0xAB),
+                },
+            ]
+        );
+    }
+
+    #[test]
+    fn test_read_charinfo_tag_none() {
+        let data = vec![];
+        let mut tfm_reader = TexFontMetricReader::new(data);
+
+        let tag = tfm_reader.read_char_info_tag(0, 0x42).unwrap();
+
+        assert_eq!(tag, TexFontCharInfoTag::None);
+    }
+
+    #[test]
+    fn test_read_charinfo_tag_ligature() {
+        let data = vec![];
+        let mut tfm_reader = TexFontMetricReader::new(data);
+
+        let tag = tfm_reader.read_char_info_tag(1, 0x42).unwrap();
+
+        assert_eq!(tag, TexFontCharInfoTag::Ligature(0x42));
+    }
+
+    #[test]
+    fn test_read_charinfo_tag_list() {
+        let data = vec![];
+        let mut tfm_reader = TexFontMetricReader::new(data);
+
+        let tag = tfm_reader.read_char_info_tag(2, 0x42).unwrap();
+
+        assert_eq!(tag, TexFontCharInfoTag::List(0x42));
+    }
+
+    #[test]
+    fn test_read_charinfo_tag_extensible() {
+        let data = vec![];
+        let mut tfm_reader = TexFontMetricReader::new(data);
+
+        let tag = tfm_reader.read_char_info_tag(3, 0x42).unwrap();
+
+        assert_eq!(tag, TexFontCharInfoTag::Extensible(0x42));
     }
 
     // Fixword
