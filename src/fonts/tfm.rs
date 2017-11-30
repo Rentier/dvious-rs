@@ -146,13 +146,6 @@ impl TexFontMetricReader {
         // Misc
         let mut misc = Vec::new();
         while bytes_read < header_size {
-            println!(
-                "{}, {}, {}, {}",
-                bytes_read,
-                header_size,
-                self.reader.len(),
-                self.reader.has_more()
-            );
             let b = self.reader.read_be::<u8>()?;
             misc.push(b);
             bytes_read += 1;
