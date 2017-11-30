@@ -1,8 +1,8 @@
 use std::process::Command;
 
-use errors::DviousError;
+use errors::{DviousError, DviousResult};
 
-pub fn kpsewhich<S1, S2>(name: S1, file_format: S2) -> Result<String, DviousError>
+pub fn kpsewhich<S1, S2>(name: S1, file_format: S2) -> DviousResult<String>
 where
     S1: Into<String>,
     S2: Into<String>,
@@ -24,6 +24,10 @@ where
     }
 }
 
-pub fn get_path_to_pk<S: Into<String>>(name: S) -> Result<String, DviousError> {
+pub fn get_path_to_pk<S: Into<String>>(name: S) -> DviousResult<String> {
     kpsewhich(name, "pk")
+}
+
+pub fn get_path_to_tfm<S: Into<String>>(name: S) -> DviousResult<String> {
+    kpsewhich(name, "tfm")
 }
