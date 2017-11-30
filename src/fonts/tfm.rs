@@ -39,6 +39,7 @@ struct TexFontMetricReader {
     reader: ByteReader,
 }
 
+#[allow(dead_code)] 
 impl TexFontMetricReader {
     fn new(bytes: Vec<u8>) -> TexFontMetricReader {
         TexFontMetricReader {
@@ -255,10 +256,10 @@ mod tests {
 
     #[test]
     fn test_read_charinfo() {
-        let data = vec![0x42, 0xAB, 0b101010_10, 0xAB];
+        let data = vec![0x42, 0xAB, 0b101010_10, 0xCD, 0x23, 0xCD, 0b010101_01, 0xEF];
         let mut tfm_reader = TexFontMetricReader::new(data);
 
-        let char_info = tfm_reader.read_char_info(0x60, 0x60).unwrap();
+        let char_info = tfm_reader.read_char_info(0x60, 0x61).unwrap();
 
         assert_eq!(
             char_info,
@@ -269,7 +270,15 @@ mod tests {
                     height_index: 0xA * 16,
                     depth_index: 0xB,
                     italic_index: 42 * 4,
-                    tag: TexFontCharInfoTag::List(0xAB),
+                    tag: TexFontCharInfoTag::List(0xCD),
+                },
+                TexFontCharInfo {
+                    character: 0x61,
+                    width_index: 0x23,
+                    height_index: 0xC * 16,
+                    depth_index: 0xD,
+                    italic_index: 21 * 4,
+                    tag: TexFontCharInfoTag::Ligature(0xEF),
                 },
             ]
         );
@@ -278,7 +287,7 @@ mod tests {
     #[test]
     fn test_read_charinfo_tag_none() {
         let data = vec![];
-        let mut tfm_reader = TexFontMetricReader::new(data);
+        let tfm_reader = TexFontMetricReader::new(data);
 
         let tag = tfm_reader.read_char_info_tag(0, 0x42).unwrap();
 
@@ -288,7 +297,7 @@ mod tests {
     #[test]
     fn test_read_charinfo_tag_ligature() {
         let data = vec![];
-        let mut tfm_reader = TexFontMetricReader::new(data);
+        let tfm_reader = TexFontMetricReader::new(data);
 
         let tag = tfm_reader.read_char_info_tag(1, 0x42).unwrap();
 
@@ -298,7 +307,7 @@ mod tests {
     #[test]
     fn test_read_charinfo_tag_list() {
         let data = vec![];
-        let mut tfm_reader = TexFontMetricReader::new(data);
+        let tfm_reader = TexFontMetricReader::new(data);
 
         let tag = tfm_reader.read_char_info_tag(2, 0x42).unwrap();
 
@@ -308,7 +317,7 @@ mod tests {
     #[test]
     fn test_read_charinfo_tag_extensible() {
         let data = vec![];
-        let mut tfm_reader = TexFontMetricReader::new(data);
+        let tfm_reader = TexFontMetricReader::new(data);
 
         let tag = tfm_reader.read_char_info_tag(3, 0x42).unwrap();
 
