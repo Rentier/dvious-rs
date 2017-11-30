@@ -1,16 +1,23 @@
+use std::fs::File;
+use std::io::prelude::*;
+use std::path::Path;
+
 use errors::{DviousError, DviousResult};
 use util::byte_reader::ByteReader;
+
+type Fixword = f64;
 
 #[derive(Debug, PartialEq)]
 pub struct TexFontMetric {
     header: TexFontMetricHeader,
     char_info: Vec<TexFontCharInfo>,
+    width_table: Vec<Fixword>,
 }
 
 #[derive(Debug, PartialEq)]
 pub struct TexFontMetricHeader {
     checksum: u32,
-    design_size: f64,
+    design_size: Fixword,
     encoding: Option<String>,
     font_identifier: Option<String>,
     face: Option<u8>,
@@ -39,6 +46,14 @@ struct TexFontMetricReader {
     reader: ByteReader,
 }
 
+pub fn read_tfm_from_file(path: String) -> DviousResult<TexFontMetric> {
+    let mut buffer = Vec::new();
+    let mut file = File::open(&path)?;
+    file.read_to_end(&mut buffer)?;
+    let mut tfm_reader = TexFontMetricReader::new(buffer);
+    tfm_reader.read()
+}
+
 #[allow(dead_code)] 
 impl TexFontMetricReader {
     fn new(bytes: Vec<u8>) -> TexFontMetricReader {
@@ -50,7 +65,7 @@ impl TexFontMetricReader {
     fn read(&mut self) -> DviousResult<TexFontMetric> {
         // Length of the entire file
         let lf = self.reader.read_be::<u16>()? as usize;
-        if lf != self.reader.len() {
+        if lf * 4 != self.reader.len() {
             return Err(DviousError::TfmParseError(format!(
                 "TFM specified to have {} bytes, but given were: {}",
                 lf,
@@ -58,17 +73,23 @@ impl TexFontMetricReader {
             )));
         }
 
-        let lh = self.reader.read_be::<u16>()?;
-        let bc = self.reader.read_be::<u16>()?;
-        let ec = self.reader.read_be::<u16>()?;
+        let lh = self.reader.read_be::<u16>()?; // Length of header data
+        let bc = self.reader.read_be::<u16>()?; // Smallest character code
+        let ec = self.reader.read_be::<u16>()?; // Largest character code
+        let nw = self.reader.read_be::<u16>()?; // Number of entries in width table
+        let nh = self.reader.read_be::<u16>()?; // Number of entries in height table
+        let nd = self.reader.read_be::<u16>()?; // Number of entries in depth table
+        let ni = self.reader.read_be::<u16>()?; // Number of entries italic correction table
+        let nl = self.reader.read_be::<u16>()?; // Number of entries in lig/kern table
+        let nk = self.reader.read_be::<u16>()?; // Number of entries in kern table
+        let ne = self.reader.read_be::<u16>()?; // Number of entries in extensible characters table
+        let np = self.reader.read_be::<u16>()?; // Number of font parameters
 
-        // Header
         let header = self.read_header(lh)?;
-
-        // Character information
         let char_info = self.read_char_info(bc, ec)?;
+        let width_table = self.read_fixword_table(nw)?;
 
-        Ok(TexFontMetric { header, char_info })
+        Ok(TexFontMetric { header, char_info, width_table })
     }
 
     fn read_header(&mut self, header_size: u16) -> DviousResult<TexFontMetricHeader> {
@@ -195,11 +216,20 @@ impl TexFontMetricReader {
         Ok(tag)
     }
 
-
-    fn read_fixword(&mut self) -> DviousResult<f64> {
-        let fixword_factor = 2.0_f64.powi(-20);
+    fn read_fixword(&mut self) -> DviousResult<Fixword> {
+        let f64_factor = 2.0_f64.powi(-20);
         let b = self.reader.read_be::<i32>()?;
-        Ok(f64::from(b) * fixword_factor)
+        Ok(f64::from(b) * f64_factor)
+    }
+
+    fn read_fixword_table(&mut self, number_of_fixwords: u16) -> DviousResult<Vec<Fixword>> {
+        let n = number_of_fixwords as usize;
+        let mut result = Vec::with_capacity(n);
+        for _ in 0..n {
+            let fixword = self.read_fixword()?;
+            result.push(fixword);
+        }
+        Ok(result)
     }
 
     fn read_utf8_string(&mut self, k: usize) -> DviousResult<String> {
@@ -342,6 +372,21 @@ mod tests {
         let fixword = tfm_reader.read_fixword().unwrap();
 
         assert_eq!(fixword, 2048.0 - 2.0_f64.powi(-20));
+    }
+
+    #[test]
+    #[cfg_attr(rustfmt, rustfmt_skip)]
+    fn test_read_fixword_table() {
+        let data = vec![
+            0x80, 0x00, 0x00, 0x00, 
+            0x00, 0x00, 0x00, 0x00, 
+            0x00, 0x0A, 0xBC, 0x00, 
+        ];
+        let mut tfm_reader = TexFontMetricReader::new(data);
+
+        let fixword_table = tfm_reader.read_fixword_table(3).unwrap();
+
+        assert_eq!(fixword_table, vec![-2048.0, 0.0, 0.6708984375]);
     }
 
     // Read string
