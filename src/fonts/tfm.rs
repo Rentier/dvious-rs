@@ -54,7 +54,7 @@ pub fn read_tfm_from_file(path: String) -> DviousResult<TexFontMetric> {
     tfm_reader.read()
 }
 
-#[allow(dead_code)] 
+#[allow(dead_code)]
 impl TexFontMetricReader {
     fn new(bytes: Vec<u8>) -> TexFontMetricReader {
         TexFontMetricReader {
@@ -63,9 +63,9 @@ impl TexFontMetricReader {
     }
 
     fn read(&mut self) -> DviousResult<TexFontMetric> {
-        // Length of the entire file
-        let lf = self.reader.read_be::<u16>()? as usize;
-        if lf * 4 != self.reader.len() {
+        // Length of the entire file in bytes, lf itself is read in words
+        let lf = self.reader.read_be::<u16>()? as usize * 2;
+        if lf != self.reader.len() {
             return Err(DviousError::TfmParseError(format!(
                 "TFM specified to have {} bytes, but given were: {}",
                 lf,
@@ -85,11 +85,37 @@ impl TexFontMetricReader {
         let ne = self.reader.read_be::<u16>()?; // Number of entries in extensible characters table
         let np = self.reader.read_be::<u16>()?; // Number of font parameters
 
+        println!("{} {}", bc, ec);
+
+        // Sanity checks
+        if bc > ec {
+            return Err(DviousError::TfmParseError(format!(
+                "The character code range [{}]..[{}] is illegal!",
+                bc,
+                ec
+            )));
+        }
+
+        let sum_of_lengths = 6 + lh + (ec - bc + 1) + nw + nh + nd + ni + nl + nk + ne + np;
+        if lf != sum_of_lengths as usize {
+            return Err(DviousError::TfmParseError(format!(
+                "TFM specified to have [{}] bytes, but summing up bytes in single sections gives [{}]",
+                lf,
+                sum_of_lengths
+            )));
+        }
+
+        // Parsing
+
         let header = self.read_header(lh)?;
         let char_info = self.read_char_info(bc, ec)?;
         let width_table = self.read_fixword_table(nw)?;
 
-        Ok(TexFontMetric { header, char_info, width_table })
+        Ok(TexFontMetric {
+            header,
+            char_info,
+            width_table,
+        })
     }
 
     fn read_header(&mut self, header_size: u16) -> DviousResult<TexFontMetricHeader> {
@@ -237,6 +263,37 @@ mod tests {
     use fonts::tfm::*;
     use errors::DviousResult;
 
+    // Sanity checks
+
+    #[test]
+    #[cfg_attr(rustfmt, rustfmt_skip)]
+    fn test_read_preamble_invalid_character_code_range() {
+        let data = vec![
+            0x00, 0x0D,
+            0x00, 0x00,
+            0x00, 0x0E,
+            0x00, 0x0D,
+            0x00, 0x00,
+            0x00, 0x00,
+            0x00, 0x00,
+            0x00, 0x00,
+            0x00, 0x00,
+            0x00, 0x00,
+            0x00, 0x00,
+            0x00, 0x00,
+            0x00, 0x00,
+        ];
+        let mut tfm_reader = TexFontMetricReader::new(data);
+
+        if let DviousError::TfmParseError(error_message) = tfm_reader.read().err().unwrap() {
+            assert_eq!(error_message, "The character code range [14]..[13] is illegal!");
+        } else {
+            panic!("Expected TfmParseError")
+        }
+    }
+
+    // Header
+
     #[test]
     #[cfg_attr(rustfmt, rustfmt_skip)]
     fn test_read_header() {
@@ -371,9 +428,9 @@ mod tests {
     #[cfg_attr(rustfmt, rustfmt_skip)]
     fn test_read_fixword_table() {
         let data = vec![
-            0x80, 0x00, 0x00, 0x00, 
-            0x00, 0x00, 0x00, 0x00, 
-            0x00, 0x0A, 0xBC, 0x00, 
+            0x80, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00,
+            0x00, 0x0A, 0xBC, 0x00,
         ];
         let mut tfm_reader = TexFontMetricReader::new(data);
 
