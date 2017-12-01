@@ -12,6 +12,9 @@ pub struct TexFontMetric {
     header: TexFontMetricHeader,
     char_info: Vec<TexFontCharInfo>,
     width_table: Vec<Fixword>,
+    heigth_table: Vec<Fixword>,
+    depth_table: Vec<Fixword>,
+    italic_table: Vec<Fixword>,
 }
 
 #[derive(Debug, PartialEq)]
@@ -63,11 +66,11 @@ impl TexFontMetricReader {
     }
 
     fn read(&mut self) -> DviousResult<TexFontMetric> {
-        // Length of the entire file in bytes, lf itself is read in words
-        let lf = self.reader.read_be::<u16>()? as usize * 2;
+        // Length of the entire file in bytes, lf itself is read in words (1 word = 4 bytes)
+        let lf = 4 * self.reader.read_be::<u16>()? as usize;
         if lf != self.reader.len() {
             return Err(DviousError::TfmParseError(format!(
-                "TFM specified to have {} bytes, but given were: {}",
+                "TFM specified to have [{}] bytes, but file on disk contains [{}] bytes",
                 lf,
                 self.reader.len()
             )));
@@ -96,10 +99,10 @@ impl TexFontMetricReader {
             )));
         }
 
-        let sum_of_lengths = 6 + lh + (ec - bc + 1) + nw + nh + nd + ni + nl + nk + ne + np;
+        let sum_of_lengths = (6 + lh + (ec - bc + 1) + nw + nh + nd + ni + nl + nk + ne + np) * 4;
         if lf != sum_of_lengths as usize {
             return Err(DviousError::TfmParseError(format!(
-                "TFM specified to have [{}] bytes, but summing up bytes in single sections gives [{}]",
+                "File says to contain [{}] bytes, but summing individual lengths adds up to [{}]",
                 lf,
                 sum_of_lengths
             )));
@@ -110,11 +113,17 @@ impl TexFontMetricReader {
         let header = self.read_header(lh)?;
         let char_info = self.read_char_info(bc, ec)?;
         let width_table = self.read_fixword_table(nw)?;
+        let heigth_table = self.read_fixword_table(nh)?;
+        let depth_table = self.read_fixword_table(nd)?;
+        let italic_table = self.read_fixword_table(ni)?;
 
         Ok(TexFontMetric {
             header,
             char_info,
             width_table,
+            heigth_table,
+            depth_table,
+            italic_table,
         })
     }
 
@@ -269,10 +278,13 @@ mod tests {
     #[cfg_attr(rustfmt, rustfmt_skip)]
     fn test_read_preamble_invalid_character_code_range() {
         let data = vec![
-            0x00, 0x0D,
+            0x00, 0x08,
             0x00, 0x00,
             0x00, 0x0E,
             0x00, 0x0D,
+            0x00, 0x00,
+            0x00, 0x00,
+            0x00, 0x00,
             0x00, 0x00,
             0x00, 0x00,
             0x00, 0x00,
