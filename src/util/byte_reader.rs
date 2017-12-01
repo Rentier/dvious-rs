@@ -76,6 +76,10 @@ impl ByteReader {
     pub fn len(&self) -> usize {
         self.bytes.len()
     }
+
+    pub fn position(&self) -> usize {
+        self.position
+    }
 }
 
 // Unsigned
@@ -366,6 +370,17 @@ mod tests {
 
         assert_eq!(reader.len(), 2_usize);
     }
+
+    #[test]
+    fn test_position() {
+        let mut reader = get_reader(vec![0xDE, 0xAD]);
+
+        reader.read_be::<u8>().unwrap();
+
+        assert_eq!(reader.position(), 1_usize);
+    }
+
+    // Util
 
     fn get_reader(bytes: Vec<u8>) -> ByteReader {
         ByteReader::new(bytes)

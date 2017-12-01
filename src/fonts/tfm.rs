@@ -1,6 +1,5 @@
 use std::fs::File;
 use std::io::prelude::*;
-use std::path::Path;
 
 use errors::{DviousError, DviousResult};
 use util::byte_reader::ByteReader;
@@ -15,7 +14,10 @@ pub struct TexFontMetric {
     heigth_table: Vec<Fixword>,
     depth_table: Vec<Fixword>,
     italic_table: Vec<Fixword>,
+    lig_kern_table: Vec<TfmLigatureCommand>,
     kern_table: Vec<Fixword>,
+    extension_table: Vec<TfmExtensionRecipe>,
+    param_table: Vec<Fixword>,
 }
 
 #[derive(Debug, PartialEq)]
@@ -54,6 +56,14 @@ pub struct TfmLigatureCommand {
     remainder: u8,
 }
 
+#[derive(Debug, PartialEq)]
+pub struct TfmExtensionRecipe {
+    top: u8,
+    mid: u8,
+    bot: u8,
+    rep: u8,
+}
+
 struct TfmMetricReader {
     reader: ByteReader,
 }
@@ -66,7 +76,6 @@ pub fn read_tfm_from_file(path: String) -> DviousResult<TexFontMetric> {
     tfm_reader.read()
 }
 
-#[allow(dead_code)]
 impl TfmMetricReader {
     fn new(bytes: Vec<u8>) -> TfmMetricReader {
         TfmMetricReader {
@@ -123,9 +132,17 @@ impl TfmMetricReader {
         let heigth_table = self.read_fixword_table(nh)?;
         let depth_table = self.read_fixword_table(nd)?;
         let italic_table = self.read_fixword_table(ni)?;
+        let lig_kern_table = self.read_lig_kern_table(nl)?;
         let kern_table = self.read_fixword_table(nk)?;
+        let extension_table = self.read_extension_table(ne)?;
+        let param_table = self.read_fixword_table(np)?;
 
-        // debug_assert!(true);
+        debug_assert!(
+            !self.reader.has_more(),
+            "Expected reader to reach end of input, but only read [{}/{}] bytes",
+            self.reader.position(),
+            self.reader.len(),
+        );
 
         Ok(TexFontMetric {
             header,
@@ -134,7 +151,10 @@ impl TfmMetricReader {
             heigth_table,
             depth_table,
             italic_table,
+            lig_kern_table,
             kern_table,
+            extension_table,
+            param_table,
         })
     }
 
@@ -255,9 +275,11 @@ impl TfmMetricReader {
         Ok(tag)
     }
 
-    fn read_lig_kern_array(&mut self, nl: usize) -> DviousResult<Vec<TfmLigatureCommand>> {
-        let mut result = Vec::with_capacity(nl);
-        for _ in 0..nl {
+    fn read_lig_kern_table(&mut self, nl: u16) -> DviousResult<Vec<TfmLigatureCommand>> {
+        let number_of_commands = nl as usize;
+        let mut result = Vec::with_capacity(number_of_commands);
+
+        for _ in 0..number_of_commands {
             let skip_byte = self.reader.read_be::<u8>()?;
             let next_char = self.reader.read_be::<u8>()?;
             let op_byte = self.reader.read_be::<u8>()?;
@@ -269,6 +291,20 @@ impl TfmMetricReader {
                 remainder,
             };
             result.push(cmd);
+        }
+        Ok(result)
+    }
+
+    fn read_extension_table(&mut self, ne: u16) -> DviousResult<Vec<TfmExtensionRecipe>> {
+        let n = ne as usize;
+        let mut result = Vec::with_capacity(n);
+        for _ in 0..n {
+            let top = self.reader.read_be::<u8>()?;
+            let mid = self.reader.read_be::<u8>()?;
+            let bot = self.reader.read_be::<u8>()?;
+            let rep = self.reader.read_be::<u8>()?;
+            let ext = TfmExtensionRecipe { top, mid, bot, rep };
+            result.push(ext);
         }
         Ok(result)
     }
@@ -299,7 +335,6 @@ impl TfmMetricReader {
 #[cfg(test)]
 mod tests {
     use fonts::tfm::*;
-    use errors::DviousResult;
 
     // Sanity checks
 
@@ -448,14 +483,14 @@ mod tests {
     // Ligature/Kern table
 
     #[test]
-    fn test_read_lig_kern_array() {
+    fn test_read_lig_kern_table() {
         let data = vec![0xDE, 0xAD, 0xBE, 0xEF, 0xCA, 0xFE, 0xBA, 0xBE];
         let mut tfm_reader = TfmMetricReader::new(data);
 
-        let lig_kern_array = tfm_reader.read_lig_kern_array(2).unwrap();
+        let lig_kern_table = tfm_reader.read_lig_kern_table(2).unwrap();
 
         assert_eq!(
-            lig_kern_array,
+            lig_kern_table,
             vec![
                 TfmLigatureCommand {
                     skip_byte: 0xDE,
@@ -473,6 +508,33 @@ mod tests {
         );
     }
 
+    // Extension table
+
+    #[test]
+    fn test_read_extension_table() {
+        let data = vec![0xDE, 0xAD, 0xBE, 0xEF, 0xCA, 0xFE, 0xBA, 0xBE];
+        let mut tfm_reader = TfmMetricReader::new(data);
+
+        let extension_table = tfm_reader.read_extension_table(2).unwrap();
+
+        assert_eq!(
+            extension_table,
+            vec![
+                TfmExtensionRecipe {
+                    top: 0xDE,
+                    mid: 0xAD,
+                    bot: 0xBE,
+                    rep: 0xEF,
+                },
+                TfmExtensionRecipe {
+                    top: 0xCA,
+                    mid: 0xFE,
+                    bot: 0xBA,
+                    rep: 0xBE,
+                },
+            ]
+        );
+    }
 
     // Fixword
 
