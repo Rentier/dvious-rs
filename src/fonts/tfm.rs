@@ -9,16 +9,17 @@ type Fixword = f64;
 
 #[derive(Debug, PartialEq)]
 pub struct TexFontMetric {
-    header: TexFontMetricHeader,
-    char_info: Vec<TexFontCharInfo>,
+    header: TfmMetricHeader,
+    char_info: Vec<TfmCharInfo>,
     width_table: Vec<Fixword>,
     heigth_table: Vec<Fixword>,
     depth_table: Vec<Fixword>,
     italic_table: Vec<Fixword>,
+    kern_table: Vec<Fixword>,
 }
 
 #[derive(Debug, PartialEq)]
-pub struct TexFontMetricHeader {
+pub struct TfmMetricHeader {
     checksum: u32,
     design_size: Fixword,
     encoding: Option<String>,
@@ -28,24 +29,32 @@ pub struct TexFontMetricHeader {
 }
 
 #[derive(Debug, PartialEq)]
-pub struct TexFontCharInfo {
+pub struct TfmCharInfo {
     character: u16,
     width_index: u8,
     height_index: u8,
     depth_index: u8,
     italic_index: u8,
-    tag: TexFontCharInfoTag,
+    tag: TfmCharInfoTag,
 }
 
 #[derive(Debug, PartialEq)]
-pub enum TexFontCharInfoTag {
+pub enum TfmCharInfoTag {
     None,
     Ligature(u8),
     List(u8),
     Extensible(u8),
 }
 
-struct TexFontMetricReader {
+#[derive(Debug, PartialEq)]
+pub struct TfmLigatureCommand {
+    skip_byte: u8,
+    next_char: u8,
+    op_byte: u8,
+    remainder: u8,
+}
+
+struct TfmMetricReader {
     reader: ByteReader,
 }
 
@@ -53,14 +62,14 @@ pub fn read_tfm_from_file(path: String) -> DviousResult<TexFontMetric> {
     let mut buffer = Vec::new();
     let mut file = File::open(&path)?;
     file.read_to_end(&mut buffer)?;
-    let mut tfm_reader = TexFontMetricReader::new(buffer);
+    let mut tfm_reader = TfmMetricReader::new(buffer);
     tfm_reader.read()
 }
 
 #[allow(dead_code)]
-impl TexFontMetricReader {
-    fn new(bytes: Vec<u8>) -> TexFontMetricReader {
-        TexFontMetricReader {
+impl TfmMetricReader {
+    fn new(bytes: Vec<u8>) -> TfmMetricReader {
+        TfmMetricReader {
             reader: ByteReader::new(bytes),
         }
     }
@@ -88,8 +97,6 @@ impl TexFontMetricReader {
         let ne = self.reader.read_be::<u16>()?; // Number of entries in extensible characters table
         let np = self.reader.read_be::<u16>()?; // Number of font parameters
 
-        println!("{} {}", bc, ec);
-
         // Sanity checks
         if bc > ec {
             return Err(DviousError::TfmParseError(format!(
@@ -116,6 +123,9 @@ impl TexFontMetricReader {
         let heigth_table = self.read_fixword_table(nh)?;
         let depth_table = self.read_fixword_table(nd)?;
         let italic_table = self.read_fixword_table(ni)?;
+        let kern_table = self.read_fixword_table(nk)?;
+
+        // debug_assert!(true);
 
         Ok(TexFontMetric {
             header,
@@ -124,10 +134,11 @@ impl TexFontMetricReader {
             heigth_table,
             depth_table,
             italic_table,
+            kern_table,
         })
     }
 
-    fn read_header(&mut self, header_size: u16) -> DviousResult<TexFontMetricHeader> {
+    fn read_header(&mut self, header_size: u16) -> DviousResult<TfmMetricHeader> {
         let mut bytes_read = 0_u16;
         let checksum = self.reader.read_be::<u32>()?;
         bytes_read += 4;
@@ -186,7 +197,7 @@ impl TexFontMetricReader {
             bytes_read += 1;
         }
 
-        Ok(TexFontMetricHeader {
+        Ok(TfmMetricHeader {
             checksum,
             design_size,
             encoding,
@@ -196,7 +207,7 @@ impl TexFontMetricReader {
         })
     }
 
-    fn read_char_info(&mut self, bc: u16, ec: u16) -> DviousResult<Vec<TexFontCharInfo>> {
+    fn read_char_info(&mut self, bc: u16, ec: u16) -> DviousResult<Vec<TfmCharInfo>> {
         let mut result = Vec::new();
 
         for character in bc..ec + 1 {
@@ -214,7 +225,7 @@ impl TexFontMetricReader {
 
             let tag = self.read_char_info_tag(tag_value, remainder)?;
 
-            let char_info = TexFontCharInfo {
+            let char_info = TfmCharInfo {
                 character,
                 width_index,
                 height_index,
@@ -228,12 +239,12 @@ impl TexFontMetricReader {
         Ok(result)
     }
 
-    fn read_char_info_tag(&self, tag_value: u8, remainder: u8) -> DviousResult<TexFontCharInfoTag> {
+    fn read_char_info_tag(&self, tag_value: u8, remainder: u8) -> DviousResult<TfmCharInfoTag> {
         let tag = match tag_value {
-            0 => TexFontCharInfoTag::None,
-            1 => TexFontCharInfoTag::Ligature(remainder),
-            2 => TexFontCharInfoTag::List(remainder),
-            3 => TexFontCharInfoTag::Extensible(remainder),
+            0 => TfmCharInfoTag::None,
+            1 => TfmCharInfoTag::Ligature(remainder),
+            2 => TfmCharInfoTag::List(remainder),
+            3 => TfmCharInfoTag::Extensible(remainder),
             _ => {
                 return Err(DviousError::TfmParseError(format!(
                     "TFM character information specified invalid tag: {}",
@@ -242,6 +253,24 @@ impl TexFontMetricReader {
             }
         };
         Ok(tag)
+    }
+
+    fn read_lig_kern_array(&mut self, nl: usize) -> DviousResult<Vec<TfmLigatureCommand>> {
+        let mut result = Vec::with_capacity(nl);
+        for _ in 0..nl {
+            let skip_byte = self.reader.read_be::<u8>()?;
+            let next_char = self.reader.read_be::<u8>()?;
+            let op_byte = self.reader.read_be::<u8>()?;
+            let remainder = self.reader.read_be::<u8>()?;
+            let cmd = TfmLigatureCommand {
+                skip_byte,
+                next_char,
+                op_byte,
+                remainder,
+            };
+            result.push(cmd);
+        }
+        Ok(result)
     }
 
     fn read_fixword(&mut self) -> DviousResult<Fixword> {
@@ -295,7 +324,7 @@ mod tests {
             0x00, 0x00,
             0x00, 0x00,
         ];
-        let mut tfm_reader = TexFontMetricReader::new(data);
+        let mut tfm_reader = TfmMetricReader::new(data);
 
         if let DviousError::TfmParseError(error_message) = tfm_reader.read().err().unwrap() {
             assert_eq!(error_message, "The character code range [14]..[13] is illegal!");
@@ -327,13 +356,13 @@ mod tests {
             0xAA, 0xBB, 0xCC, 0xDD
         ];
         let number_of_bytes = data.len() as u16;
-        let mut tfm_reader = TexFontMetricReader::new(data);
+        let mut tfm_reader = TfmMetricReader::new(data);
 
         let header = tfm_reader.read_header(number_of_bytes).unwrap();
 
         assert_eq!(
             header,
-            TexFontMetricHeader {
+            TfmMetricHeader {
                 checksum: 0xAABBCCDD,
                 design_size: 10.0,
                 encoding: Some("Test".to_string()),
@@ -349,28 +378,28 @@ mod tests {
     #[test]
     fn test_read_charinfo() {
         let data = vec![0x42, 0xAB, 0b101010_10, 0xCD, 0x23, 0xCD, 0b010101_01, 0xEF];
-        let mut tfm_reader = TexFontMetricReader::new(data);
+        let mut tfm_reader = TfmMetricReader::new(data);
 
         let char_info = tfm_reader.read_char_info(0x60, 0x61).unwrap();
 
         assert_eq!(
             char_info,
             vec![
-                TexFontCharInfo {
+                TfmCharInfo {
                     character: 0x60,
                     width_index: 0x42,
                     height_index: 0xA * 16,
                     depth_index: 0xB,
                     italic_index: 42 * 4,
-                    tag: TexFontCharInfoTag::List(0xCD),
+                    tag: TfmCharInfoTag::List(0xCD),
                 },
-                TexFontCharInfo {
+                TfmCharInfo {
                     character: 0x61,
                     width_index: 0x23,
                     height_index: 0xC * 16,
                     depth_index: 0xD,
                     italic_index: 21 * 4,
-                    tag: TexFontCharInfoTag::Ligature(0xEF),
+                    tag: TfmCharInfoTag::Ligature(0xEF),
                 },
             ]
         );
@@ -379,48 +408,77 @@ mod tests {
     #[test]
     fn test_read_charinfo_tag_none() {
         let data = vec![];
-        let tfm_reader = TexFontMetricReader::new(data);
+        let tfm_reader = TfmMetricReader::new(data);
 
         let tag = tfm_reader.read_char_info_tag(0, 0x42).unwrap();
 
-        assert_eq!(tag, TexFontCharInfoTag::None);
+        assert_eq!(tag, TfmCharInfoTag::None);
     }
 
     #[test]
     fn test_read_charinfo_tag_ligature() {
         let data = vec![];
-        let tfm_reader = TexFontMetricReader::new(data);
+        let tfm_reader = TfmMetricReader::new(data);
 
         let tag = tfm_reader.read_char_info_tag(1, 0x42).unwrap();
 
-        assert_eq!(tag, TexFontCharInfoTag::Ligature(0x42));
+        assert_eq!(tag, TfmCharInfoTag::Ligature(0x42));
     }
 
     #[test]
     fn test_read_charinfo_tag_list() {
         let data = vec![];
-        let tfm_reader = TexFontMetricReader::new(data);
+        let tfm_reader = TfmMetricReader::new(data);
 
         let tag = tfm_reader.read_char_info_tag(2, 0x42).unwrap();
 
-        assert_eq!(tag, TexFontCharInfoTag::List(0x42));
+        assert_eq!(tag, TfmCharInfoTag::List(0x42));
     }
 
     #[test]
     fn test_read_charinfo_tag_extensible() {
         let data = vec![];
-        let tfm_reader = TexFontMetricReader::new(data);
+        let tfm_reader = TfmMetricReader::new(data);
 
         let tag = tfm_reader.read_char_info_tag(3, 0x42).unwrap();
 
-        assert_eq!(tag, TexFontCharInfoTag::Extensible(0x42));
+        assert_eq!(tag, TfmCharInfoTag::Extensible(0x42));
     }
+
+    // Ligature/Kern table
+
+    #[test]
+    fn test_read_lig_kern_array() {
+        let data = vec![0xDE, 0xAD, 0xBE, 0xEF, 0xCA, 0xFE, 0xBA, 0xBE];
+        let mut tfm_reader = TfmMetricReader::new(data);
+
+        let lig_kern_array = tfm_reader.read_lig_kern_array(2).unwrap();
+
+        assert_eq!(
+            lig_kern_array,
+            vec![
+                TfmLigatureCommand {
+                    skip_byte: 0xDE,
+                    next_char: 0xAD,
+                    op_byte: 0xBE,
+                    remainder: 0xEF,
+                },
+                TfmLigatureCommand {
+                    skip_byte: 0xCA,
+                    next_char: 0xFE,
+                    op_byte: 0xBA,
+                    remainder: 0xBE,
+                },
+            ]
+        );
+    }
+
 
     // Fixword
 
     #[test]
     fn test_read_fixword_min() {
-        let mut tfm_reader = TexFontMetricReader::new(vec![0x80, 0x00, 0x00, 0x00]);
+        let mut tfm_reader = TfmMetricReader::new(vec![0x80, 0x00, 0x00, 0x00]);
 
         let fixword = tfm_reader.read_fixword().unwrap();
 
@@ -429,7 +487,7 @@ mod tests {
 
     #[test]
     fn test_read_fixword_max() {
-        let mut tfm_reader = TexFontMetricReader::new(vec![0x7F, 0xFF, 0xFF, 0xFF]);
+        let mut tfm_reader = TfmMetricReader::new(vec![0x7F, 0xFF, 0xFF, 0xFF]);
 
         let fixword = tfm_reader.read_fixword().unwrap();
 
@@ -444,7 +502,7 @@ mod tests {
             0x00, 0x00, 0x00, 0x00,
             0x00, 0x0A, 0xBC, 0x00,
         ];
-        let mut tfm_reader = TexFontMetricReader::new(data);
+        let mut tfm_reader = TfmMetricReader::new(data);
 
         let fixword_table = tfm_reader.read_fixword_table(3).unwrap();
 
@@ -455,7 +513,7 @@ mod tests {
 
     #[test]
     fn test_read_string() {
-        let mut tfm_reader = TexFontMetricReader::new(vec![0x54, 0x65, 0x73, 0x74]);
+        let mut tfm_reader = TfmMetricReader::new(vec![0x54, 0x65, 0x73, 0x74]);
 
         let result = tfm_reader.read_utf8_string(4).unwrap();
 
