@@ -44,7 +44,15 @@ impl ByteReader {
         Ok(result)
     }
 
-    fn peek_slice(&self, n: usize) -> Result<&[u8], DviousError> {
+    pub fn skip_bytes<T: Into<u32>>(&mut self, k: T) -> DviousResult<()> {
+        // Consume leftover bytes
+        for _ in 0..k.into() {
+            self.read_be::<u8>()?;
+        }
+        Ok(())
+    }
+
+    fn peek_slice(&self, n: usize) -> DviousResult<&[u8]> {
         let start = self.position;
         let end = self.position + n;
 
@@ -56,7 +64,7 @@ impl ByteReader {
         }
     }
 
-    fn read_slice(&mut self, n: usize) -> Result<&[u8], DviousError> {
+    fn read_slice(&mut self, n: usize) -> DviousResult<&[u8]> {
         let start = self.position;
         let end = self.position + n;
 
@@ -343,6 +351,17 @@ mod tests {
 
         assert!(!reader.has_more(), "Expected that reader has no more");
         assert!(reader.read_be::<u32>().is_err(), "Expected that 'e' is Err");
+    }
+
+    // Skip
+
+    #[test]
+    fn test_skip_bytes() {
+        let mut reader = get_reader(vec![0xDE, 0xAD, 0xBE, 0xEF]);
+
+        reader.skip_bytes(2_u32).unwrap();
+
+        assert_eq!(reader.position(), 2);
     }
 
     // Has more

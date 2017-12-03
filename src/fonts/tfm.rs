@@ -8,36 +8,36 @@ type Fixword = f64;
 
 #[derive(Debug, PartialEq)]
 pub struct TexFontMetric {
-    header: TfmMetricHeader,
-    char_info: Vec<TfmCharInfo>,
-    width_table: Vec<Fixword>,
-    heigth_table: Vec<Fixword>,
-    depth_table: Vec<Fixword>,
-    italic_table: Vec<Fixword>,
-    lig_kern_table: Vec<TfmLigatureCommand>,
-    kern_table: Vec<Fixword>,
-    extension_table: Vec<TfmExtensionRecipe>,
-    param_table: Vec<Fixword>,
+    pub header: TfmMetricHeader,
+    pub char_info_table: Vec<TfmCharInfo>,
+    pub width_table: Vec<Fixword>,
+    pub heigth_table: Vec<Fixword>,
+    pub depth_table: Vec<Fixword>,
+    pub italic_table: Vec<Fixword>,
+    pub lig_kern_table: Vec<TfmLigatureCommand>,
+    pub kern_table: Vec<Fixword>,
+    pub extension_table: Vec<TfmExtensionRecipe>,
+    pub param_table: Vec<Fixword>,
 }
 
 #[derive(Debug, PartialEq)]
 pub struct TfmMetricHeader {
-    checksum: u32,
-    design_size: Fixword,
-    encoding: Option<String>,
-    font_identifier: Option<String>,
-    face: Option<u8>,
-    misc: Vec<u8>,
+    pub checksum: u32,
+    pub design_size: Fixword,
+    pub encoding: Option<String>,
+    pub font_identifier: Option<String>,
+    pub face: Option<u8>,
+    pub misc: Vec<u8>,
 }
 
 #[derive(Debug, PartialEq)]
 pub struct TfmCharInfo {
-    character: u16,
-    width_index: u8,
-    height_index: u8,
-    depth_index: u8,
-    italic_index: u8,
-    tag: TfmCharInfoTag,
+    pub character: u16,
+    pub width_index: u8,
+    pub height_index: u8,
+    pub depth_index: u8,
+    pub italic_index: u8,
+    pub tag: TfmCharInfoTag,
 }
 
 #[derive(Debug, PartialEq)]
@@ -50,18 +50,18 @@ pub enum TfmCharInfoTag {
 
 #[derive(Debug, PartialEq)]
 pub struct TfmLigatureCommand {
-    skip_byte: u8,
-    next_char: u8,
-    op_byte: u8,
-    remainder: u8,
+    pub skip_byte: u8,
+    pub next_char: u8,
+    pub op_byte: u8,
+    pub remainder: u8,
 }
 
 #[derive(Debug, PartialEq)]
 pub struct TfmExtensionRecipe {
-    top: u8,
-    mid: u8,
-    bot: u8,
-    rep: u8,
+    pub top: u8,
+    pub mid: u8,
+    pub bot: u8,
+    pub rep: u8,
 }
 
 struct TfmMetricReader {
@@ -84,7 +84,7 @@ impl TfmMetricReader {
     }
 
     fn read(&mut self) -> DviousResult<TexFontMetric> {
-        // Length of the entire file in bytes, lf itself is read in words (1 word = 4 bytes)
+        // Length of the entire file in bytes, lf itself is in words (1 word = 4 bytes)
         let lf = 4 * self.reader.read_be::<u16>()? as usize;
         if lf != self.reader.len() {
             return Err(DviousError::TfmParseError(format!(
@@ -127,7 +127,7 @@ impl TfmMetricReader {
         // Parsing
 
         let header = self.read_header(lh)?;
-        let char_info = self.read_char_info(bc, ec)?;
+        let char_info_table = self.read_char_info_table(bc, ec)?;
         let width_table = self.read_fixword_table(nw)?;
         let heigth_table = self.read_fixword_table(nh)?;
         let depth_table = self.read_fixword_table(nd)?;
@@ -146,7 +146,7 @@ impl TfmMetricReader {
 
         Ok(TexFontMetric {
             header,
-            char_info,
+            char_info_table,
             width_table,
             heigth_table,
             depth_table,
@@ -158,52 +158,60 @@ impl TfmMetricReader {
         })
     }
 
+    /// `header_size` is given in words, not in bytes
     fn read_header(&mut self, header_size: u16) -> DviousResult<TfmMetricHeader> {
-        let mut bytes_read = 0_u16;
+        let mut words_read = 0_u16;
         let checksum = self.reader.read_be::<u32>()?;
-        bytes_read += 4;
+        words_read += 1;
         let design_size = self.read_fixword()?;
-        bytes_read += 4;
+        words_read += 1;
 
         // Handle encoding information
-        const ENCODING_FIELD_LENGTH: u16 = 39;
-        let encoding_len = self.reader.read_be::<u8>()?;
-        bytes_read += 1;
-        if encoding_len > 39 {
-            return Err(DviousError::TfmParseError(format!(
-                "TFM header specified to have {} bytes, which is more than the allowed 0..39",
-                encoding_len
-            )));
-        }
-
-        let encoding = if bytes_read < header_size {
-            let s = self.read_utf8_string(encoding_len as usize)?;
-            bytes_read += ENCODING_FIELD_LENGTH;
-            // Consume leftover bytes
-            for _ in u16::from(encoding_len)..ENCODING_FIELD_LENGTH {
-                self.reader.read_be::<u8>()?;
+        let encoding = if words_read < header_size {
+            const ENCODING_FIELD_LEN: u8 = 39;
+            let encoding_len = self.reader.read_be::<u8>()?;
+            words_read += 10;
+            if encoding_len > 39 {
+                return Err(DviousError::TfmParseError(format!(
+                    "TFM header encoding specified to have [{}] bytes, which is more than the allowed 0..39",
+                    encoding_len
+                )));
             }
+
+            let s = self.read_utf8_string(encoding_len as usize)?;
+            self.reader.skip_bytes(ENCODING_FIELD_LEN - encoding_len)?;
             Option::Some(s)
         } else {
             Option::None
         };
 
         // Font identifier
-        let font_identifier = if bytes_read < header_size {
-            let s = self.read_utf8_string(20)?;
-            bytes_read += 20;
+        let font_identifier = if words_read < header_size {
+            // The font identifier is saved in Pascal format,
+            // the first byte indicates its length
+            const FONT_ID_FIELD_LEN: u8 = 20;
+            let font_id_len = self.reader.read_be::<u8>()?;
+            if font_id_len > 19 {
+                return Err(DviousError::TfmParseError(format!(
+                    "TFM header font identifier specified to have [{}] bytes, which is more than the allowed 0..19",
+                    font_id_len
+                )));
+            }
+            let s = self.read_utf8_string(usize::from(font_id_len))?;
+            self.reader.skip_bytes(FONT_ID_FIELD_LEN - font_id_len - 1)?;
+            words_read += 5;
             Option::Some(s)
         } else {
             Option::None
         };
 
         // Face
-        let face = if bytes_read < header_size {
+        let face = if words_read < header_size {
             self.reader.read_be::<u8>()?;
             self.reader.read_be::<u16>()?;
             let face_byte = self.reader.read_be::<u8>()?;
 
-            bytes_read += 4;
+            words_read += 1;
             Option::Some(face_byte)
         } else {
             Option::None
@@ -211,10 +219,11 @@ impl TfmMetricReader {
 
         // Misc
         let mut misc = Vec::new();
-        while bytes_read < header_size {
+        let misc_bytes = (header_size - words_read) * 4;
+
+        for _ in 0..misc_bytes {
             let b = self.reader.read_be::<u8>()?;
             misc.push(b);
-            bytes_read += 1;
         }
 
         Ok(TfmMetricHeader {
@@ -227,7 +236,7 @@ impl TfmMetricReader {
         })
     }
 
-    fn read_char_info(&mut self, bc: u16, ec: u16) -> DviousResult<Vec<TfmCharInfo>> {
+    fn read_char_info_table(&mut self, bc: u16, ec: u16) -> DviousResult<Vec<TfmCharInfo>> {
         let mut result = Vec::new();
 
         for character in bc..ec + 1 {
@@ -243,9 +252,9 @@ impl TfmMetricReader {
             let tag_value = third_byte & 0b0000_0011;
             let remainder = fourth_byte;
 
-            let tag = self.read_char_info_tag(tag_value, remainder)?;
+            let tag = self.read_char_info_table_tag(tag_value, remainder)?;
 
-            let char_info = TfmCharInfo {
+            let char_info_table = TfmCharInfo {
                 character,
                 width_index,
                 height_index,
@@ -253,13 +262,17 @@ impl TfmMetricReader {
                 italic_index,
                 tag,
             };
-            result.push(char_info);
+            result.push(char_info_table);
         }
 
         Ok(result)
     }
 
-    fn read_char_info_tag(&self, tag_value: u8, remainder: u8) -> DviousResult<TfmCharInfoTag> {
+    fn read_char_info_table_tag(
+        &self,
+        tag_value: u8,
+        remainder: u8,
+    ) -> DviousResult<TfmCharInfoTag> {
         let tag = match tag_value {
             0 => TfmCharInfoTag::None,
             1 => TfmCharInfoTag::Ligature(remainder),
@@ -378,13 +391,15 @@ mod tests {
 
             0x00, 0xA0, 0x00, 0x00,
 
-            0x04, 0x54, 0x65, 0x73, 0x74, 0x00, 0x00, 0x00, 0x00, 0x00,
-            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x04, 0x54, 0x65, 0x73, 0x74, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 
-            0x48, 0x45, 0x4c, 0x56, 0x45, 0x54, 0x49, 0x43, 0x41, 0x00,
-            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x09, 0x48, 0x45, 0x4c, 0x56, 0x45, 0x54, 0x49,
+            0x43, 0x41, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00,
 
             0x00, 0x00, 0x00, 0x12,
 
@@ -393,7 +408,7 @@ mod tests {
         let number_of_bytes = data.len() as u16;
         let mut tfm_reader = TfmMetricReader::new(data);
 
-        let header = tfm_reader.read_header(number_of_bytes).unwrap();
+        let header = tfm_reader.read_header(number_of_bytes / 4).unwrap();
 
         assert_eq!(
             header,
@@ -401,7 +416,7 @@ mod tests {
                 checksum: 0xAABBCCDD,
                 design_size: 10.0,
                 encoding: Some("Test".to_string()),
-                font_identifier: Some("HELVETICA\0\0\0\0\0\0\0\0\0\0\0".to_string()),
+                font_identifier: Some("HELVETICA".to_string()),
                 face: Option::Some(0x12),
                 misc: vec![0xAA, 0xBB, 0xCC, 0xDD]
             }
@@ -415,10 +430,10 @@ mod tests {
         let data = vec![0x42, 0xAB, 0b101010_10, 0xCD, 0x23, 0xCD, 0b010101_01, 0xEF];
         let mut tfm_reader = TfmMetricReader::new(data);
 
-        let char_info = tfm_reader.read_char_info(0x60, 0x61).unwrap();
+        let char_info_table = tfm_reader.read_char_info_table(0x60, 0x61).unwrap();
 
         assert_eq!(
-            char_info,
+            char_info_table,
             vec![
                 TfmCharInfo {
                     character: 0x60,
@@ -445,7 +460,7 @@ mod tests {
         let data = vec![];
         let tfm_reader = TfmMetricReader::new(data);
 
-        let tag = tfm_reader.read_char_info_tag(0, 0x42).unwrap();
+        let tag = tfm_reader.read_char_info_table_tag(0, 0x42).unwrap();
 
         assert_eq!(tag, TfmCharInfoTag::None);
     }
@@ -455,7 +470,7 @@ mod tests {
         let data = vec![];
         let tfm_reader = TfmMetricReader::new(data);
 
-        let tag = tfm_reader.read_char_info_tag(1, 0x42).unwrap();
+        let tag = tfm_reader.read_char_info_table_tag(1, 0x42).unwrap();
 
         assert_eq!(tag, TfmCharInfoTag::Ligature(0x42));
     }
@@ -465,7 +480,7 @@ mod tests {
         let data = vec![];
         let tfm_reader = TfmMetricReader::new(data);
 
-        let tag = tfm_reader.read_char_info_tag(2, 0x42).unwrap();
+        let tag = tfm_reader.read_char_info_table_tag(2, 0x42).unwrap();
 
         assert_eq!(tag, TfmCharInfoTag::List(0x42));
     }
@@ -475,7 +490,7 @@ mod tests {
         let data = vec![];
         let tfm_reader = TfmMetricReader::new(data);
 
-        let tag = tfm_reader.read_char_info_tag(3, 0x42).unwrap();
+        let tag = tfm_reader.read_char_info_table_tag(3, 0x42).unwrap();
 
         assert_eq!(tag, TfmCharInfoTag::Extensible(0x42));
     }
