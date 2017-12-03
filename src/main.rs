@@ -40,8 +40,6 @@ fn main() {
     };
 
     match result {
-        // The `description` method of `io::Error` returns a string that
-        // describes the error
         Err(why) => {
             eprintln!("An error occured: {:?}", why);
             process::exit(1);
