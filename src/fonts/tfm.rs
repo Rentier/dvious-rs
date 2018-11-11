@@ -1,15 +1,15 @@
+use std::collections::HashMap;
 use std::fs::File;
 use std::io::prelude::*;
 
 use errors::{DviousError, DviousResult};
 use util::byte_reader::ByteReader;
-
-type Fixword = f64;
+use util::num::Fixword;
 
 #[derive(Debug, PartialEq)]
 pub struct TexFontMetric {
     pub header: TfmMetricHeader,
-    pub char_info_table: Vec<TfmCharInfo>,
+    pub char_info_table: HashMap<u8, TfmCharInfo>,
     pub width_table: Vec<Fixword>,
     pub heigth_table: Vec<Fixword>,
     pub depth_table: Vec<Fixword>,
@@ -32,7 +32,7 @@ pub struct TfmMetricHeader {
 
 #[derive(Debug, PartialEq)]
 pub struct TfmCharInfo {
-    pub character: u16,
+    pub character: u8,
     pub width_index: u8,
     pub height_index: u8,
     pub depth_index: u8,
@@ -127,7 +127,7 @@ impl TfmMetricReader {
         // Parsing
 
         let header = self.read_header(lh)?;
-        let char_info_table = self.read_char_info_table(bc, ec)?;
+        let char_info_table = self.read_char_info_table(bc as u8, ec as u8)?;
         let width_table = self.read_fixword_table(nw)?;
         let heigth_table = self.read_fixword_table(nh)?;
         let depth_table = self.read_fixword_table(nd)?;
@@ -236,8 +236,8 @@ impl TfmMetricReader {
         })
     }
 
-    fn read_char_info_table(&mut self, bc: u16, ec: u16) -> DviousResult<Vec<TfmCharInfo>> {
-        let mut result = Vec::new();
+    fn read_char_info_table(&mut self, bc: u8, ec: u8) -> DviousResult<HashMap<u8, TfmCharInfo>> {
+        let mut result = HashMap::new();
 
         for character in bc..ec + 1 {
             let first_byte = self.reader.read_be::<u8>()?;
@@ -262,7 +262,7 @@ impl TfmMetricReader {
                 italic_index,
                 tag,
             };
-            result.push(char_info_table);
+            result.insert(character, char_info_table);
         }
 
         Ok(result)
@@ -433,25 +433,31 @@ mod tests {
         let char_info_table = tfm_reader.read_char_info_table(0x60, 0x61).unwrap();
 
         assert_eq!(
-            char_info_table,
-            vec![
-                TfmCharInfo {
-                    character: 0x60,
-                    width_index: 0x42,
-                    height_index: 0xA * 16,
-                    depth_index: 0xB,
-                    italic_index: 42 * 4,
-                    tag: TfmCharInfoTag::List(0xCD),
-                },
-                TfmCharInfo {
-                    character: 0x61,
-                    width_index: 0x23,
-                    height_index: 0xC * 16,
-                    depth_index: 0xD,
-                    italic_index: 21 * 4,
-                    tag: TfmCharInfoTag::Ligature(0xEF),
-                },
-            ]
+            char_info_table.len(),
+            2,
+            "Expected only 2 char info entries!"
+        );
+        assert_eq!(
+            char_info_table[&0x60],
+            TfmCharInfo {
+                character: 0x60,
+                width_index: 0x42,
+                height_index: 0xA * 16,
+                depth_index: 0xB,
+                italic_index: 42 * 4,
+                tag: TfmCharInfoTag::List(0xCD),
+            }
+        );
+        assert_eq!(
+            char_info_table[&0x61],
+            TfmCharInfo {
+                character: 0x61,
+                width_index: 0x23,
+                height_index: 0xC * 16,
+                depth_index: 0xD,
+                italic_index: 21 * 4,
+                tag: TfmCharInfoTag::Ligature(0xEF),
+            }
         );
     }
 

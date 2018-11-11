@@ -1,3 +1,7 @@
+// Fixword
+
+pub type Fixword = f64;
+
 // u24
 
 #[derive(Debug, PartialEq)]
