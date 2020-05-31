@@ -1,7 +1,7 @@
-use dvi::opcodes::OpCode;
-use errors::{DviousError, DviousResult};
-use util::byte_reader::ByteReader;
-use util::num::{i24, u24};
+use crate::dvi::opcodes::OpCode;
+use crate::errors::{DviousError, DviousResult};
+use crate::util::byte_reader::ByteReader;
+use crate::util::num::{i24, u24};
 
 pub fn disassemble(bytes: Vec<u8>) -> DviousResult<Vec<OpCode>> {
     let mut disassembler = Disassembler::new(bytes);
@@ -40,7 +40,7 @@ impl Disassembler {
     fn disassemble_next(&mut self) -> DviousResult<OpCode> {
         let byte = self.reader.read_be::<u8>()?;
         let opcode = match byte {
-            0...127 => self.handle_set_char(i32::from(byte))?,
+            0..=127 => self.handle_set_char(i32::from(byte))?,
             128 => self.handle_set1()?,
             129 => self.handle_set2()?,
             130 => self.handle_set3()?,
@@ -84,7 +84,7 @@ impl Disassembler {
             168 => self.handle_z2()?,
             169 => self.handle_z3()?,
             170 => self.handle_z4()?,
-            171...234 => self.handle_fnt_num(byte)?,
+            171..=234 => self.handle_fnt_num(byte)?,
             235 => self.handle_fnt1()?,
             236 => self.handle_fnt2()?,
             237 => self.handle_fnt3()?,
@@ -533,9 +533,9 @@ impl Disassembler {
 
 #[cfg(test)]
 mod tests {
-    use dvi::disassembler::disassemble;
-    use dvi::opcodes::OpCode;
-    use errors::DviousResult;
+    use crate::dvi::disassembler::disassemble;
+    use crate::dvi::opcodes::OpCode;
+    use crate::errors::DviousResult;
 
     #[test]
     fn test_disassemble_set_char() {

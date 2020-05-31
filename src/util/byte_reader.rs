@@ -1,5 +1,5 @@
-use errors::{DviousError, DviousResult};
-use util::num::{i24, u24};
+use crate::errors::{DviousError, DviousResult};
+use crate::util::num::{i24, u24};
 
 pub struct ByteReader {
     position: usize,
@@ -7,7 +7,7 @@ pub struct ByteReader {
 }
 
 pub trait Readable {
-    fn from_u8_be(&[u8]) -> Self;
+    fn from_u8_be(_: &[u8]) -> Self;
     fn size_in_bytes() -> usize;
 }
 
@@ -178,7 +178,7 @@ impl Readable for i32 {
 
 #[cfg(test)]
 mod tests {
-    use util::byte_reader::{ByteReader, i24, u24};
+    use crate::util::byte_reader::{ByteReader, i24, u24};
 
     // Peek unsigned
 

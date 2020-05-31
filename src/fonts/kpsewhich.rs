@@ -1,6 +1,6 @@
 use std::process::Command;
 
-use errors::{DviousError, DviousResult};
+use crate::errors::{DviousError, DviousResult};
 
 pub fn kpsewhich<S1, S2>(name: S1, file_format: S2) -> DviousResult<String>
 where

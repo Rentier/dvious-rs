@@ -2,9 +2,9 @@ use std::collections::HashMap;
 use std::fs::File;
 use std::io::prelude::*;
 
-use errors::{DviousError, DviousResult};
-use util::byte_reader::ByteReader;
-use util::num::Fixword;
+use crate::errors::{DviousError, DviousResult};
+use crate::util::byte_reader::ByteReader;
+use crate::util::num::Fixword;
 
 #[derive(Debug, PartialEq)]
 pub struct TexFontMetric {
@@ -347,7 +347,7 @@ impl TfmMetricReader {
 
 #[cfg(test)]
 mod tests {
-    use fonts::tfm::*;
+    use crate::fonts::tfm::*;
 
     // Sanity checks
 

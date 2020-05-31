@@ -1,7 +1,7 @@
-use dvi::opcodes::OpCode;
-use errors::DviousResult;
-use fonts::tfm::*;
-use util::num::Fixword;
+use crate::dvi::opcodes::OpCode;
+use crate::errors::DviousResult;
+use crate::fonts::tfm::*;
+
 
 /// The units used internally by the interpreter are TeX scaled points (sp).
 pub struct Interpreter {
@@ -48,7 +48,7 @@ impl Interpreter {
         Ok(())
     }
 
-    fn handle_set(&mut self, c: i32) {
+    fn handle_set(&mut self, _c: i32) {
         // self.registers.h += self.get_character_width(c);
     }
 
@@ -66,9 +66,9 @@ impl Interpreter {
 #[cfg(test)]
 mod tests {
     use std::collections::HashMap;
-    use dvi::interpreter::*;
-    use dvi::opcodes::*;
-    use fonts::tfm::*;
+    use crate::dvi::interpreter::*;
+    use crate::dvi::opcodes::*;
+    
 
     #[test]
     fn test_execute_set() {
