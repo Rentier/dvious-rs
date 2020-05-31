@@ -2,7 +2,7 @@
 name = "dvious"
 version = "0.1.0"
 authors = ["Jan-Christoph Klie <git@jck.fastmail.com>"]
-
+edition = "2018"
 
 [lib]
 name = "dvious"
