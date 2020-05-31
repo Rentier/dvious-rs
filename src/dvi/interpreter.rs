@@ -52,15 +52,15 @@ impl Interpreter {
         // self.registers.h += self.get_character_width(c);
     }
 
-    fn get_char_info(&self, c: i32) {
-        let tfm = &self.fonts[self.f as usize];
-        let char_info = &tfm.char_info_table;
-    }
+    // fn get_char_info(&self, c: i32) {
+    //     let tfm = &self.fonts[self.f as usize];
+    //     let char_info = &tfm.char_info_table;
+    // }
 
-    fn get_character_width(&self, c: i32) -> Fixword {
-        let char_info = self.get_char_info(c);
-        0.
-    }
+    // fn get_character_width(&self, c: i32) -> Fixword {
+    //     let char_info = self.get_char_info(c);
+    //     0.
+    // }
 }
 
 #[cfg(test)]
